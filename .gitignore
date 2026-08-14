@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+.next/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# Generated simulation outputs
+physics/**/outputs/
+ml/datasets/
