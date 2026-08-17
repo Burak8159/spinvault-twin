@@ -9,19 +9,25 @@
 export function buildFramePlaybackView(result) {
   const frames = Array.isArray(result?.artifacts?.frames) ? result.artifacts.frames : [];
   const ordered = [...frames].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+  const pythonMesh =
+    result?.source === "python_micromagnetic" ||
+    ordered[0]?.format === "spinvault-magnetization-npz-v1";
   if (!ordered.length) {
     return {
       available: false,
       frames: [],
-      message: "No OVF magnetization frames were attached. This run can show only table-based mx/my/mz playback."
+      message: pythonMesh
+        ? "No Python mesh frames were attached. Spatial maps stay empty; only table-based mx/my/mz playback is available."
+        : "No OVF magnetization frames were attached. This run can show only table-based mx/my/mz playback."
     };
   }
   return {
     available: true,
     frames: ordered,
-    message:
-      `${ordered.length} raw MuMax3 OVF magnetization frame(s) were exported. ` +
-      "Center viewport playback uses parsed OVF Text/Binary vectors only; no fabricated spatial field is drawn."
+    message: pythonMesh
+      ? `${ordered.length} Python mesh magnetization frame(s) were returned. Spatial maps use those vectors only; no fabricated spatial field is drawn. Not OVF. Not MuMax3.`
+      : `${ordered.length} raw MuMax3 OVF magnetization frame(s) were exported. ` +
+        "Center viewport playback uses parsed OVF Text/Binary vectors only; no fabricated spatial field is drawn."
   };
 }
 

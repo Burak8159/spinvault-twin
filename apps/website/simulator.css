@@ -1855,6 +1855,22 @@ body.light .sv-viewport-frame {
   overflow: auto;
 }
 
+.sv-main:has(.sv-scientific-dashboard) {
+  grid-template-rows: minmax(180px, 0.38fr) minmax(320px, 0.62fr);
+}
+
+.sv-analysis:has(.sv-scientific-dashboard) {
+  max-height: min(62vh, 920px);
+  min-height: 320px;
+}
+
+@media (max-width: 760px) {
+  .sv-analysis:has(.sv-scientific-dashboard) {
+    max-height: none;
+    min-height: calc(100dvh - 168px);
+  }
+}
+
 .sv-tabs {
   display: flex;
   gap: 3px;
@@ -2000,4 +2016,117 @@ body.light .sv-viewport-frame {
 .sv-stage:-webkit-full-screen #sv-inspect-readout,
 .sv-stage:-webkit-full-screen #sv-mumax-playback {
   display: none !important;
+}
+
+.sv-scientific-dashboard {
+  background: #05070a;
+  color: #e2e8f0;
+  border: 1px solid #1e293b;
+  padding: 10px 12px 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.sv-scientific-dashboard .sv-board-header h3 {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sv-scientific-dashboard .sv-board-header p {
+  margin: 4px 0 8px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.sv-board-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #cbd5e1;
+}
+
+.sv-mz-scale {
+  display: inline-flex;
+  height: 8px;
+  width: 72px;
+  overflow: hidden;
+  border: 1px solid #334155;
+}
+
+.sv-mz-scale i[data-mz="-1"] { flex: 1; background: #1d4ed8; }
+.sv-mz-scale i[data-mz="0"] { flex: 1; background: #f8fafc; }
+.sv-mz-scale i[data-mz="1"] { flex: 1; background: #dc2626; }
+
+.sv-dash-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 960px) {
+  .sv-dash-row[data-row="schematic-snapshots"] {
+    grid-template-columns: 170px 1fr;
+  }
+  .sv-dash-row[data-row="plots"],
+  .sv-dash-row[data-row="viz"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.sv-scientific-dashboard .sv-board-panel {
+  border: 1px solid #1e293b;
+  padding: 8px;
+  background: #070b10;
+}
+
+.sv-scientific-dashboard .sv-board-panel h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: #e2e8f0;
+}
+
+.sv-board-snapshots,
+.sv-board-cross-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (max-width: 720px) {
+  .sv-board-snapshots,
+  .sv-board-cross-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sv-state-card {
+  border: 1px solid #334155;
+  padding: 8px;
+  margin-bottom: 6px;
+}
+
+.sv-state-card strong {
+  display: block;
+  font-size: 16px;
+}
+
+.sv-dash-details {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.sv-scientific-dashboard .sv-prov-badge {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  padding: 1px 4px;
+  border: 1px solid currentColor;
 }

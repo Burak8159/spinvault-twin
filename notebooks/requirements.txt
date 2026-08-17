@@ -1,0 +1,6 @@
+# Dependencies for the analysis notebooks only.
+# The API and the mesh solver do not need these; see backend/requirements.txt.
+numpy>=1.24
+matplotlib>=3.7
+jupyterlab>=4.0
+ipykernel>=6.29

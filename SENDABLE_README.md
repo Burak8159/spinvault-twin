@@ -4,23 +4,22 @@ This package is the local digital-twin stack:
 
 - static Twin UI (`apps/website`)
 - FastAPI backend + Python LLG solver (`backend`)
-- one-command launchers for Windows, macOS, and Linux
+- one-command launchers for Windows and macOS (Linux works with the same shell script)
 
-No cloud service is required. MuMax3 is optional and only runs if you set
-`MUMAX3_BINARY` to a real local NVIDIA/CUDA MuMax3 executable.
+No cloud service is required. Simulations run in local Python. MuMax3 is not
+used by the default Twin.
 
 ## Requirements
 
-- Python 3.9+
-- Windows 10/11, macOS, or Linux
+- Python 3.9 or newer
+- Windows 10/11, or macOS
 - Network once for the first `pip install` of backend dependencies
 
 ## Start on Windows
 
-1. Extract the zip completely.
+1. Extract the zip completely (do not run it from inside the zip).
 2. Double-click **`RUN_ON_WINDOWS.bat`**.
-3. Keep the terminal window open. The simulator opens automatically in the
-   default browser.
+3. Keep the terminal window open. The matplotlib Twin opens in the default browser.
 
 No WSL, Git Bash, PowerShell configuration, Node.js, GPU, or administrator
 access is required. If Python is missing, the launcher explains where to
@@ -30,7 +29,14 @@ Windows SmartScreen may show a warning because the batch file is not
 code-signed. Choose **More info → Run anyway** only if this zip came from
 someone you trust.
 
-## Start on macOS or Linux
+## Start on macOS
+
+1. Extract the zip completely.
+2. Double-click **`RUN_ON_MAC.command`**.
+3. If macOS says the file cannot be opened, right-click it and choose
+   **Open**, then confirm. Keep the Terminal window open.
+
+From Terminal instead:
 
 ```bash
 cd spinvault-twin
@@ -38,36 +44,56 @@ chmod +x scripts/run_local.sh
 scripts/run_local.sh
 ```
 
-Then open:
+## Pages after launch
 
-- Simulator: http://127.0.0.1:4191/simulator.html
-- Website:   http://127.0.0.1:4191/index.html
-- API docs:  http://127.0.0.1:8001/docs
+Default ports are website **4191** and API **8001**. Both launchers open:
+
+- NumPy + matplotlib Twin: http://127.0.0.1:4191/matplotlib-twin.html?api=http://127.0.0.1:8001
+- Simulator: http://127.0.0.1:4191/simulator.html?api=http://127.0.0.1:8001
+- Retention + leakage figures: http://127.0.0.1:4191/retention-leakage.html
+- Website: http://127.0.0.1:4191/index.html
+- API docs: http://127.0.0.1:8001/docs
+
+The matplotlib Twin lets you edit free-layer geometry, material constants, LLGS
+drive, and barrier parameters. Its spatial maps come from computed mesh frames;
+retention and leakage are separately labeled analytical models generated from the
+same submitted inputs.
 
 Stop either launcher with Ctrl+C.
 
-If ports are busy:
+If ports are busy on macOS/Linux:
 
 ```bash
 SPINVAULT_API_PORT=8055 SPINVAULT_WEB_PORT=4455 scripts/run_local.sh
 ```
 
-and open:
+On Windows PowerShell:
 
-http://127.0.0.1:4455/simulator.html?api=http://127.0.0.1:8055
+```powershell
+$env:SPINVAULT_API_PORT=8055
+$env:SPINVAULT_WEB_PORT=4455
+.\scripts\run_local_windows.ps1
+```
+
+Then open the URLs printed in the terminal (they include the `?api=` query).
 
 ## What runs by default
 
+- `python_micromagnetic`: local 64×32×1 finite-difference LLGS with Newell FFT demagnetization
 - `python_llg`: CPU macrospin Landau–Lifshitz–Gilbert–Slonczewski on this machine
 - Quantum Wave view: analytical 1D barrier Schrödinger model
-- MuMax3: only when `MUMAX3_BINARY` points at a compatible local binary
-
-A MuMax3 request without a binary returns `not_configured`. It does **not**
-silently invent MuMax3 results.
+- MuMax3 is not used; a MuMax3 request without a binary returns `not_configured`.
+  It does **not** silently invent MuMax3 results.
 
 ## The physics that is actually integrated
 
-The free layer is one macrospin obeying
+The default solver is a **64×32×1 finite-difference LLGS mesh** with exchange,
+uniaxial anisotropy, Zeeman, Slonczewski STT, optional Brown thermal field,
+and full finite-cell Newell demagnetization evaluated by zero-padded FFT.
+Sampled magnetization frames are stored as `spinvault-magnetization-npz-v1`.
+`python_llg` remains a separate one-moment macrospin baseline.
+
+Both use
 
 ```text
 dm/dt = -γ' m×B_eff - γ'α m×(m×B_eff) - γ' a_J m×(m×p) + γ' α a_J m×p
@@ -113,9 +139,12 @@ Then choose the MuMax3 solver / V01 equilibrium experiment in the UI.
 
 ## Honesty notes
 
-- This is a **macrospin** twin: one free-layer moment, no spatial mesh, no
-  exchange field, no domain nucleation. Real reversal nucleates, so the
-  coherent-rotation `Jc0` reported here **overestimates** a real device.
+- The default Twin is a **2-D mesh** (`nz=1`): no through-thickness domains,
+  no MuMax3, and no measured-device accuracy. Spatial maps come only from
+  returned Python mesh frames.
+- `python_llg` is a **macrospin** baseline: one free-layer moment, no spatial
+  mesh. Real reversal nucleates, so the coherent-rotation `Jc0` reported here
+  **overestimates** a real device.
 - The pinned layer is a fixed polarizer, not a dynamical second layer.
 - Retention, leakage, and TMR are **analytical models** (Néel–Arrhenius,
   Tsu–Esaki, Julliere), not device solvers, and are labeled MODEL in the UI.
@@ -135,11 +164,13 @@ cd ../apps/website && npm test
 ## Package contents
 
 ```text
-apps/website/     Twin UI + company site
-backend/          FastAPI + solvers + tests
-docs/             Physics audit and prompts
-scripts/          Local run helpers
+apps/website/      Twin UI + company site
+backend/           FastAPI + solvers + tests
+docs/              Physics audit and prompts
+notebooks/         Retention / leakage notebook
+scripts/           Local run helpers
 RUN_ON_WINDOWS.bat Native Windows launcher
+RUN_ON_MAC.command Native macOS launcher
 SENDABLE_README.md
 README.md
 ```

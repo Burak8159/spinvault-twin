@@ -5,7 +5,7 @@
  * None of these types imply that MuMax3, Kwant, or a surrogate model is connected.
  */
 
-export type SolverTarget = "demo" | "python_llg" | "mumax3" | "kwant" | "surrogate";
+export type SolverTarget = "demo" | "python_llg" | "python_micromagnetic" | "mumax3" | "kwant" | "surrogate";
 
 export type SimulationStatus =
   | "idle"
@@ -203,6 +203,8 @@ export interface MumaxParameterDraft {
   currentDensity?: Quantity;
   simulationTime?: Quantity;
   timeStepHint?: Quantity;
+  sttLambda?: Quantity;
+  fieldLikeRatio?: Quantity;
 }
 
 // Transport-request draft only. Kwant is not connected.
@@ -272,7 +274,7 @@ export interface ScenarioPreset {
 export interface Provenance {
   createdAt: string;
   createdBy: "user" | "system" | "demo_fixture";
-  solver: "none" | "demo" | "python_llg" | "mumax3" | "kwant" | "surrogate";
+  solver: "none" | "demo" | "python_llg" | "python_micromagnetic" | "mumax3" | "kwant" | "surrogate";
   solverVersion?: string;
   inputHash?: string;
   notes?: string[];

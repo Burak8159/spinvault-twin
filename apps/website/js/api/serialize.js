@@ -144,11 +144,14 @@ export function serializeSimulationRequest(scenario, requestedSolver) {
     const kwant = scenario.solverDrafts.kwant;
     const surrogate = scenario.solverDrafts.surrogate;
     const mumaxModelKind = mumax.modelKind || "smoke";
-    const includeSwitchingV1Fields = mumaxModelKind === "spinvault_mtj_free_layer_switching_v1";
+    const includeMeshSolverFields =
+      requestedSolver === "python_micromagnetic" || requestedSolver === "python_llg";
+    const includeSwitchingV1Fields =
+      includeMeshSolverFields || mumaxModelKind === "spinvault_mtj_free_layer_switching_v1";
     const includeAnisotropyFields =
       includeSwitchingV1Fields || mumaxModelKind === "reference_pmtj_v01_equilibrium";
-    // currentDensity / timeStepHint remain UI pending metadata and are never submitted:
-    // STT/SOT and fixed dt are not mapped into generated .mx3 scripts.
+    // currentDensity / timeStepHint are submitted for the local Python solvers.
+    // MuMax3 still omits them because generated .mx3 scripts do not map STT or a fixed dt.
     payload.solverDrafts = {
       mumax3: {
         meshCellSize: {
@@ -229,6 +232,38 @@ export function serializeSimulationRequest(scenario, requestedSolver) {
               simulationTime: serializeQuantity(
                 mumax.simulationTime,
                 "solverDrafts.mumax3.simulationTime",
+                warnings
+              )
+            }
+          : {}),
+        ...(includeMeshSolverFields && mumax.currentDensity
+          ? {
+              currentDensity: serializeQuantity(
+                mumax.currentDensity,
+                "solverDrafts.mumax3.currentDensity",
+                warnings
+              )
+            }
+          : {}),
+        ...(includeMeshSolverFields && mumax.timeStepHint
+          ? {
+              timeStepHint: serializeQuantity(
+                mumax.timeStepHint,
+                "solverDrafts.mumax3.timeStepHint",
+                warnings
+              )
+            }
+          : {}),
+        ...(includeMeshSolverFields && mumax.sttLambda
+          ? {
+              sttLambda: serializeQuantity(mumax.sttLambda, "solverDrafts.mumax3.sttLambda", warnings)
+            }
+          : {}),
+        ...(includeMeshSolverFields && mumax.fieldLikeRatio
+          ? {
+              fieldLikeRatio: serializeQuantity(
+                mumax.fieldLikeRatio,
+                "solverDrafts.mumax3.fieldLikeRatio",
                 warnings
               )
             }

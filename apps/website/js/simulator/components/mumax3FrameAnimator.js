@@ -49,14 +49,15 @@ export function formatPlaybackTimeLabel(frame, index, frameCount, magnetization 
 }
 
 /**
- * The schematic must not own the viewport once real MuMax3 frame artifacts exist.
- * Some hosts omit the frames array from the job payload and only report ovf-frame-count.
+ * Attached mesh frames only. Python results never invent OVF paths.
+ * Some MuMax3 hosts omit the frames array and only report ovf-frame-count.
  * @param {import("../lib/types").SimulationResult | null | undefined} result
  * @returns {NonNullable<import("../lib/types").SimulationArtifacts["frames"]>}
  */
 export function ovfFramesFromResult(result) {
   const attached = result?.artifacts?.frames;
   if (Array.isArray(attached) && attached.length > 0) return attached;
+  if (result?.source === "python_micromagnetic") return [];
   const count = Number(
     result?.metrics?.find((metric) => metric.id === "ovf-frame-count")?.displayValue
   );
@@ -72,16 +73,24 @@ export function ovfFramesFromResult(result) {
 }
 
 /**
+ * @param {NonNullable<import("../lib/types").SimulationArtifacts["frames"]> | undefined} frames
+ */
+export function isPythonMeshFrameList(frames) {
+  return frames?.[0]?.format === "spinvault-magnetization-npz-v1";
+}
+
+/**
  * The schematic must not own the viewport once real MuMax3 frame artifacts exist.
  * @param {import("../lib/types").SimulationResult | null | undefined} result
  */
 export function shouldUseMumax3FrameAnimator(result) {
-  return (
-    result?.source === "mumax3" &&
-    result.isPhysicalSimulation === true &&
-    ovfFramesFromResult(result).length > 0
-  );
+  const frames = ovfFramesFromResult(result);
+  if (!frames.length) return false;
+  if (result?.source === "python_micromagnetic") return true;
+  return Boolean(result?.isPhysicalSimulation === true && result?.source === "mumax3");
 }
+
+export const shouldUseMeshFrameAnimator = shouldUseMumax3FrameAnimator;
 
 /**
  * Claim the center viewport synchronously before controls or frame requests are set up.
@@ -141,7 +150,7 @@ export class MuMax3FrameCache {
     const request = this.fetchFrame(jobId, frameIndex)
       .then((response) => {
         if (!Array.isArray(response.frame?.vectors) || response.frame.vectors.length === 0) {
-          throw new Error("OVF frame response contains no raw vectors.");
+          throw new Error("Mesh frame response contains no raw vectors.");
         }
         return response.frame;
       })
@@ -183,7 +192,8 @@ export class MuMax3FrameAnimator {
  *   isViewportActive?: () => boolean,
  *   runMetrics?: import("../lib/types").SimulationResult["metrics"],
  *   magnetization?: Partial<Record<"mx"|"my"|"mz", import("../lib/types").ResultSeries>>,
- *   displayMode?: "vector" | "mz" | "mx" | "my"
+ *   displayMode?: "vector" | "mz" | "mx" | "my",
+ *   source?: string
  * }} options
    */
   constructor(options) {
@@ -191,6 +201,8 @@ export class MuMax3FrameAnimator {
     this.controlsRoot = options.controlsRoot;
     this.jobId = options.jobId;
     this.frames = options.frames;
+    this.source = options.source ?? (isPythonMeshFrameList(options.frames) ? "python_micromagnetic" : "mumax3");
+    this.frameNoun = this.source === "python_micromagnetic" ? "mesh frame" : "OVF frame";
     this.selectedFrameIndex = options.selectedFrameIndex ?? 0;
     this.onFrameIndexChange = options.onFrameIndexChange ?? (() => {});
     this.intervalMs = options.intervalMs ?? 120;
@@ -243,7 +255,10 @@ export class MuMax3FrameAnimator {
     this.destroyed = false;
     this.controlsRoot.replaceChildren();
     this.controlsRoot.className = "sv-frame-playback sv-frame-playback-featured sv-frame-playback-center";
-    this.controlsRoot.setAttribute("aria-label", "Raw MuMax3 OVF frame animator");
+    this.controlsRoot.setAttribute(
+      "aria-label",
+      this.source === "python_micromagnetic" ? "Python mesh frame animator" : "Raw MuMax3 OVF frame animator"
+    );
 
     const row = document.createElement("div");
     row.className = "sv-ovf-playback-row";
@@ -258,7 +273,7 @@ export class MuMax3FrameAnimator {
       toggle.disabled = true;
       toggle.title = this.reducedMotion
         ? "Autoplay disabled when reduced motion is preferred. Use the slider."
-        : "Only one OVF frame is available.";
+        : `Only one ${this.frameNoun} is available.`;
     }
 
     const indicator = document.createElement("strong");
@@ -270,7 +285,10 @@ export class MuMax3FrameAnimator {
     slider.min = "0";
     slider.max = String(Math.max(0, this.frames.length - 1));
     slider.step = "1";
-    slider.setAttribute("aria-label", "Raw MuMax3 OVF frame index");
+    slider.setAttribute(
+      "aria-label",
+      this.source === "python_micromagnetic" ? "Python mesh frame index" : "Raw MuMax3 OVF frame index"
+    );
 
     const speedLabel = document.createElement("label");
     speedLabel.className = "sv-twin-slider sv-ovf-speed";
@@ -281,7 +299,10 @@ export class MuMax3FrameAnimator {
     speed.max = "3";
     speed.step = "0.25";
     speed.value = String(this.speed);
-    speed.setAttribute("aria-label", "Raw MuMax3 OVF playback speed");
+    speed.setAttribute(
+      "aria-label",
+      this.source === "python_micromagnetic" ? "Python mesh playback speed" : "Raw MuMax3 OVF playback speed"
+    );
     const speedReadout = document.createElement("span");
     speedReadout.textContent = `${this.speed.toFixed(2)}×`;
     speedLabel.append(speed, speedReadout);
@@ -372,7 +393,7 @@ export class MuMax3FrameAnimator {
     svg.setAttribute("class", "sv-ovf-mini-trace");
     svg.setAttribute("viewBox", "0 0 360 62");
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", "Mean mz trace synchronized to OVF playback");
+    svg.setAttribute("aria-label", "Mean mz trace synchronized to mesh playback");
     const points = series.points;
     const minX = points[0].x;
     const maxX = points[points.length - 1].x;
@@ -450,7 +471,7 @@ export class MuMax3FrameAnimator {
         pickViewportVariant()
       );
     }
-    if (this.status) this.status.textContent = `Loading attached OVF frame ${index + 1}/${this.frames.length}…`;
+    if (this.status) this.status.textContent = `Loading attached ${this.frameNoun} ${index + 1}/${this.frames.length}…`;
     try {
       const [frame, chronologicalPrevious] = await Promise.all([
         this.cache.load(this.jobId, index),
@@ -504,11 +525,11 @@ export class MuMax3FrameAnimator {
       }
     } catch (error) {
       if (this.destroyed || token !== this.requestToken) return;
-      const message = error instanceof Error ? error.message : "Could not fetch or parse OVF frame.";
+      const message = error instanceof Error ? error.message : `Could not fetch or parse ${this.frameNoun}.`;
       if (this.isViewportActive()) {
         renderOvfFrameErrorViewport(this.viewport, message, this.geometry, pickViewportVariant());
       }
-      if (this.status) this.status.textContent = `OVF frame error: ${message}`;
+      if (this.status) this.status.textContent = `${this.frameNoun} error: ${message}`;
     }
   }
 
@@ -603,7 +624,7 @@ export class MuMax3FrameAnimator {
     title.textContent = metadata.label;
     const list = document.createElement("dl");
     for (const [label, value] of [
-      ["Source", "MuMax3 OVF"],
+      ["Source", this.source === "python_micromagnetic" ? "Python mesh NPZ" : "MuMax3 OVF"],
       ["Frame", `${index + 1} / ${this.frames.length}`],
       ["Attached index", `${index}`],
       ["Artifact index", `${metadata.index}`],

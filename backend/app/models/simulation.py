@@ -8,7 +8,7 @@ from pydantic import Field, field_validator
 
 from .provenance import CamelModel, Provenance
 
-SolverTarget = Literal["demo", "python_llg", "mumax3", "kwant", "surrogate"]
+SolverTarget = Literal["demo", "python_llg", "python_micromagnetic", "mumax3", "kwant", "surrogate"]
 MumaxModelKind = Literal[
     "smoke",
     "reference_pmtj_v01_equilibrium",
@@ -156,6 +156,8 @@ class MumaxParameterDraft(CamelModel):
     current_density: Quantity | None = Field(default=None, alias="currentDensity")
     simulation_time: Quantity | None = Field(default=None, alias="simulationTime")
     time_step_hint: Quantity | None = Field(default=None, alias="timeStepHint")
+    stt_lambda: Quantity | None = Field(default=None, alias="sttLambda")
+    field_like_ratio: Quantity | None = Field(default=None, alias="fieldLikeRatio")
 
 
 class KwantParameterDraft(CamelModel):
@@ -178,6 +180,16 @@ class SurrogateRequestMetadata(CamelModel):
     model_id: str | None = Field(default=None, alias="modelId")
     model_version: str | None = Field(default=None, alias="modelVersion")
     notes: str | None = None
+
+
+class MatplotlibReportConfiguration(CamelModel):
+    """Analytical inputs used only for the post-solve matplotlib device report."""
+
+    barrier_height_ev: float = Field(default=1.2, alias="barrierHeightEv", gt=0)
+    effective_mass_ratio: float = Field(default=0.4, alias="effectiveMassRatio", gt=0)
+    fermi_ev: float = Field(default=0.8, alias="fermiEv", gt=0)
+    read_bias_volts: float = Field(default=0.1, alias="readBiasVolts")
+    retention_window_years: float = Field(default=10.0, alias="retentionWindowYears", gt=0)
 
 
 class SolverDrafts(CamelModel):
@@ -212,6 +224,9 @@ class SimulationRequest(CamelModel):
     )
     external_field: Vector3Quantity | None = Field(default=None, alias="externalField")
     solver_drafts: SolverDrafts | None = Field(default=None, alias="solverDrafts")
+    matplotlib_report: MatplotlibReportConfiguration | None = Field(
+        default=None, alias="matplotlibReport"
+    )
     provenance: Provenance | None = None
 
 
@@ -247,7 +262,7 @@ class SimulationArtifacts(CamelModel):
 
 
 class SimulationResult(CamelModel):
-    source: Literal["demo_fixture", "mumax3", "python_llg_twin"] = "demo_fixture"
+    source: Literal["demo_fixture", "mumax3", "python_llg_twin", "python_micromagnetic"] = "demo_fixture"
     is_physical_simulation: bool = Field(default=False, alias="isPhysicalSimulation")
     summary: str
     series: list[ResultSeries] = Field(default_factory=list)

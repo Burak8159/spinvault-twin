@@ -88,8 +88,8 @@ class JobService:
             )
             return self.store.update(job)
 
-        # MuMax3 heavy jobs run asynchronously via the worker queue.
-        if request.requested_solver == "mumax3":
+        # Mesh LLGS and MuMax3 jobs run asynchronously via the worker queue.
+        if request.requested_solver in {"mumax3", "python_micromagnetic"}:
             if self.queue is None:
                 job.status = "failed"
                 job.progress_phase = "failed"
@@ -98,7 +98,7 @@ class JobService:
                 job.errors = [
                     JobError(
                         code="worker_queue_missing",
-                        message="MuMax3 worker queue is not configured on this API process.",
+                        message="Worker queue is not configured on this API process.",
                     )
                 ]
                 return self.store.update(job)
@@ -106,11 +106,16 @@ class JobService:
             job.status = "queued"
             job.progress_phase = "queued"
             job.updated_at = utc_now()
+            solver_note = (
+                "MuMax3 job queued for local worker execution."
+                if request.requested_solver == "mumax3"
+                else "Python micromagnetic job queued for local worker execution."
+            )
             job.provenance = Provenance(
                 created_at=utc_now(),
                 created_by="system",
-                solver="mumax3",
-                notes=["MuMax3 job queued for local worker execution."],
+                solver=request.requested_solver,
+                notes=[solver_note],
             )
             updated = self.store.update(job)
             self.queue.enqueue(job_id)
@@ -176,7 +181,7 @@ class JobService:
             job.provenance = Provenance(
                 created_at=utc_now(),
                 created_by="system",
-                solver=job.requested_solver if job.requested_solver in {"demo", "mumax3"} else "none",
+                solver=job.requested_solver if job.requested_solver in {"demo", "mumax3", "python_llg", "python_micromagnetic"} else "none",
                 notes=["Job cancelled by client request."],
             )
             job.result = None

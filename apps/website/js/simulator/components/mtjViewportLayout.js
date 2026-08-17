@@ -380,16 +380,20 @@ export function appendSpinGlyph(group, el, options) {
   return glyph;
 }
 
-/** @param {number} value */
+/**
+ * Diverging mz color with a gamma-boosted ramp so a small tilt already reads as
+ * color instead of neutral slate, and saturated endpoints for +-1.
+ * @param {number} value
+ */
 export function mzColor(value) {
   const mz = Math.max(-1, Math.min(1, Number(value) || 0));
   /** @param {number} a @param {number} b @param {number} t */
   const mix = (a, b, t) => Math.round(a + (b - a) * t);
+  const t = Math.pow(Math.abs(mz), 0.55);
   if (mz >= 0) {
-    return `rgb(${mix(148, 220, mz)}, ${mix(163, 38, mz)}, ${mix(184, 38, mz)})`;
+    return `rgb(${mix(148, 255, t)}, ${mix(163, 26, t)}, ${mix(184, 26, t)})`;
   }
-  const t = -mz;
-  return `rgb(${mix(148, 37, t)}, ${mix(163, 99, t)}, ${mix(184, 235, t)})`;
+  return `rgb(${mix(148, 20, t)}, ${mix(163, 118, t)}, ${mix(184, 255, t)})`;
 }
 
 /**

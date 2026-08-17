@@ -174,7 +174,9 @@ export function buildDynamicsDiagnostics(result, job = null) {
   const metrics = result?.metrics ?? [];
   const frames = result?.artifacts?.frames ?? [];
   const frameCount =
-    parseFinite(metricValue(metrics, "ovf-frame-count")) ?? (frames.length || null);
+    parseFinite(metricValue(metrics, "ovf-frame-count")) ??
+    parseFinite(metricValue(metrics, "mesh-frame-count")) ??
+    (frames.length || null);
   const maxDelta = parseFinite(metricValue(metrics, "raw-max-component-delta"));
   const motion = metricValue(metrics, "trajectory-motion");
   const switching = metricValue(metrics, "switching-occurred");
@@ -204,6 +206,10 @@ export function buildDynamicsDiagnostics(result, job = null) {
     result?.provenance?.solverVersion ||
     job?.provenance?.solverVersion ||
     null;
+  const seed = metricValue(metrics, "seed");
+  const exchangeLength = metricValue(metrics, "exchange-length");
+  const timestepCriterion = metricValue(metrics, "timestep-criterion");
+  const mesh = metricValue(metrics, "mesh");
 
   /** @type {string[]} */
   const warnings = [];
@@ -219,7 +225,7 @@ export function buildDynamicsDiagnostics(result, job = null) {
     warnings.push(`Frame count ${frameCount} is low for dynamics inspection.`);
   }
   if (!frames.some((frame) => Number.isFinite(Number(frame.metadata?.time)))) {
-    warnings.push("No OVF timing metadata on attached frames; labels may fall back to frame index or table time.");
+    warnings.push("No frame timing metadata on attached frames; labels may fall back to frame index or table time.");
   }
 
   let switchingOutcome = "indeterminate";
@@ -256,13 +262,20 @@ export function buildDynamicsDiagnostics(result, job = null) {
     solverSource: result?.source ?? "unknown",
     solverVersion,
     acceleration,
+    seed,
+    exchangeLength,
+    timestepCriterion,
+    meshLabel: mesh,
     switchingThreshold: threshold,
     switchingOccurred: switching,
     switchingOutcome,
     finalState,
     warnings,
     isPhysical: Boolean(
-      result?.isPhysicalSimulation && (result?.source === "mumax3" || result?.source === "python_llg_twin")
+      result?.isPhysicalSimulation &&
+        (result?.source === "mumax3" ||
+          result?.source === "python_llg_twin" ||
+          result?.source === "python_micromagnetic")
     )
   };
 }
@@ -306,12 +319,19 @@ export function buildScientificBoardModel(input) {
     /e_total|e_exch|e_demag|e_anis|e_zeeman|energy/i.test(`${item.id} ${item.label}`)
   );
   return {
-    title: result.source === "python_llg_twin" ? "Python LLG twin (macrospin)" : "MuMax3 MTJ cell",
+    title:
+      result.source === "python_micromagnetic"
+        ? "Python mesh LLGS · PMTJ dashboard"
+        : result.source === "python_llg_twin"
+          ? "Python LLG twin (macrospin)"
+          : "MuMax3 MTJ cell",
     honesty:
-      result.source === "mumax3"
+      result.source === "python_micromagnetic"
+        ? "SIMULATED mesh maps and m(t). ANALYTICAL MODEL for MR. VISUALIZATION for 3D extrusion. nz=1: no through-thickness domains. Not MuMax3. Not a measured device."
+        : result.source === "mumax3"
         ? "Raw MuMax3 free-layer micromagnetic output. No TMR/resistance/retention claims."
         : result.source === "python_llg_twin"
-          ? "CPU macrospin LLG. Not MuMax3. No mesh/OVF. No TMR/resistance/retention claims."
+          ? "CPU macrospin LLG. Not MuMax3. No mesh. Uniform m only. No TMR/resistance/retention claims."
           : "Not a physical micromagnetic solve. Demo or other sources must not be read as device validation.",
     snapshots,
     magnetization,

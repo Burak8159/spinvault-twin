@@ -43,7 +43,7 @@ describe("device observables provenance", () => {
     it("tags python_llg_twin mean-m as SIMULATED without claiming OVF", () => {
     const rows = classifyDeviceObservables({
       source: "python_llg_twin",
-      isPhysicalSimulation: true,
+      isPhysicalSimulation: Boolean(1),
       summary: "cpu llg",
       series: [
         {

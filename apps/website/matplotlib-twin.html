@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SpinVault Twin | NumPy + Matplotlib</title>
+  <link rel="stylesheet" href="styles.css?v=spinvault-twin-57-20260817" />
+  <link rel="stylesheet" href="matplotlib-twin.css?v=spinvault-twin-57-20260817" />
+  <script type="module" src="js/matplotlib-twin.js?v=spinvault-twin-57-20260817"></script>
+</head>
+<body class="mpt-page">
+  <main class="mpt-shell">
+    <header class="mpt-header">
+      <div>
+        <p class="mpt-eyebrow">SpinVault Twin · local Python</p>
+        <h1>NumPy micromagnetics + matplotlib</h1>
+        <p>
+          Every map, trace, energy curve, diagnostic, and animation below is rendered
+          from one real 64×32×1 finite-difference LLGS trajectory.
+        </p>
+      </div>
+      <nav class="mpt-nav" aria-label="Twin pages">
+        <a href="retention-leakage.html">Retention &amp; leakage</a>
+        <a href="simulator.html">Interactive SVG Twin</a>
+      </nav>
+    </header>
+
+    <section class="mpt-honesty" aria-label="Scientific provenance">
+      <strong>SIMULATED</strong>
+      NumPy LLGS · exchange · anisotropy · Zeeman · Slonczewski STT · Brown field when T&gt;0 ·
+      finite-cell Newell demagnetization by zero-padded FFT.
+      <span>nz=1: no through-thickness domains. Not MuMax3. Not measured-device accuracy.</span>
+    </section>
+
+    <section class="mpt-run-panel" aria-labelledby="run-title">
+      <div>
+        <h2 id="run-title">Run the actual Twin</h2>
+        <p>
+          The solver decides whether reversal is coherent, edge-nucleated, domain-mediated,
+          or absent. No visual sequence is prescribed.
+        </p>
+      </div>
+      <form id="mpt-form">
+        <fieldset>
+          <legend>Trajectory</legend>
+          <label>Transition<select id="mpt-transition"><option value="transition_0_to_1">AP → P</option><option value="transition_1_to_0">P → AP</option><option value="state_0_ap">AP state</option><option value="state_1_p">P state</option></select></label>
+          <label>Duration [ps]<input id="mpt-duration" type="number" min="2" max="2000" step="1" value="10" /></label>
+          <label>Current log₁₀(J / A m⁻²)<input id="mpt-current" type="number" min="9" max="13" step="0.1" value="12.7" /></label>
+          <label>Pulse field [T]<input id="mpt-pulse-field" type="number" min="0" max="5" step="0.05" value="0.6" /></label>
+          <label>Temperature [K]<input id="mpt-temperature" type="number" min="0" max="800" step="1" value="300" /></label>
+          <label>Seed<input id="mpt-seed" type="number" min="0" step="1" value="7" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Free-layer geometry · used by mesh + retention</legend>
+          <label>Length [nm]<input id="mpt-length" type="number" min="8" max="500" step="1" value="80" /></label>
+          <label>Width [nm]<input id="mpt-width" type="number" min="4" max="250" step="1" value="40" /></label>
+          <label>Thickness [nm]<input id="mpt-free-thickness" type="number" min="0.2" max="10" step="0.1" value="1.2" /></label>
+          <label>Footprint<select id="mpt-shape"><option value="rectangle">Rectangle (full mesh)</option><option value="ellipse">Ellipse</option></select></label>
+        </fieldset>
+        <fieldset>
+          <legend>Free-layer material · illustrative, editable</legend>
+          <label>Preset<select id="mpt-material"><option value="cofeb">CoFeB-like example</option><option value="low-ms">Low-Ms exploratory</option><option value="high-ku">High-Ku exploratory</option><option value="custom">Custom values</option></select></label>
+          <label>M<sub>s</sub> [MA/m]<input id="mpt-ms" type="number" min="0.05" max="3" step="0.01" value="1.00" /></label>
+          <label>K<sub>u</sub> [MJ/m³]<input id="mpt-ku" type="number" min="0" max="10" step="0.01" value="0.80" /></label>
+          <label>A<sub>ex</sub> [pJ/m]<input id="mpt-aex" type="number" min="0.1" max="100" step="0.1" value="10" /></label>
+          <label>Damping α<input id="mpt-alpha" type="number" min="0.001" max="1" step="0.001" value="0.01" /></label>
+          <label>STT polarization<input id="mpt-polarization" type="number" min="0" max="0.99" step="0.01" value="0.60" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Barrier · analytical leakage only</legend>
+          <label>Thickness [nm]<input id="mpt-barrier-thickness" type="number" min="0.2" max="5" step="0.05" value="1.0" /></label>
+          <label>Barrier top [eV]<input id="mpt-barrier-height" type="number" min="0.05" max="10" step="0.05" value="1.2" /></label>
+          <label>Effective mass [mₑ]<input id="mpt-effective-mass" type="number" min="0.01" max="3" step="0.01" value="0.40" /></label>
+          <label>Fermi level [eV]<input id="mpt-fermi" type="number" min="0.01" max="10" step="0.01" value="0.80" /></label>
+          <label>Read bias [V]<input id="mpt-read-bias" type="number" min="-2" max="2" step="0.01" value="0.10" /></label>
+        </fieldset>
+        <div class="mpt-form-action">
+          <p>Barrier inputs do not alter LLGS. They feed the labeled analytical Tsu–Esaki panel generated for the same job.</p>
+          <button id="mpt-run" type="submit">Run 64×32×1 + render full report</button>
+        </div>
+      </form>
+      <p class="mpt-runtime">
+        10 ps is about 4,500 femtosecond steps on this mesh, followed by the matplotlib report.
+        Longer runs scale roughly linearly. The browser polls a queued local worker and never blocks the API.
+      </p>
+    </section>
+
+    <section class="mpt-status" aria-live="polite">
+      <div>
+        <span class="mpt-status-dot"></span>
+        <strong id="mpt-status">Ready</strong>
+      </div>
+      <div id="mpt-progress">No run submitted.</div>
+      <div id="mpt-job"></div>
+      <button id="mpt-cancel" type="button" hidden>Cancel</button>
+    </section>
+
+    <section id="mpt-empty" class="mpt-empty">
+      <h2>What the report contains</h2>
+      <ul>
+        <li>Every sampled raw mesh frame as a synchronized GIF.</li>
+        <li>Large in-plane arrows and explicit ▲/▼ markers for near-normal ±z spins.</li>
+        <li>Continuous color for the full spin orientation, with a color key and gradual transitions between computed cells.</li>
+        <li>A clearly labeled adaptive spatial-texture map plus raw per-cell diagnostics.</li>
+        <li>Computed ⟨m<sub>x</sub>⟩, ⟨m<sub>y</sub>⟩, ⟨m<sub>z</sub>⟩ and energy decomposition.</li>
+        <li>Retention and leakage sweeps generated from the same editable geometry/material/barrier inputs.</li>
+        <li>Final component maps, nz=1 lateral cuts, norm and neighbor-angle diagnostics.</li>
+      </ul>
+    </section>
+
+    <section id="mpt-report" class="mpt-report" hidden>
+      <header>
+        <div>
+          <p class="mpt-eyebrow">Completed local job</p>
+          <h2>Matplotlib Twin report</h2>
+        </div>
+        <dl id="mpt-mesh-summary"></dl>
+      </header>
+      <p id="mpt-report-honesty" class="mpt-report-honesty"></p>
+      <div id="mpt-assets" class="mpt-assets"></div>
+    </section>
+  </main>
+</body>
+</html>

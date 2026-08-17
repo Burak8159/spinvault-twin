@@ -5,10 +5,11 @@
 
 /**
  * @param {import("./types").SimulatorState} state
- * @returns {"demo" | "mumax3_smoke" | import("./types").MumaxModelKind | "other"}
+ * @returns {"demo" | "python_micromagnetic" | "mumax3_smoke" | import("./types").MumaxModelKind | "other"}
  */
 export function resolveRunModelLabel(state) {
   if (state.solverTarget === "demo") return "demo";
+  if (state.solverTarget === "python_micromagnetic") return "python_micromagnetic";
   if (state.solverTarget === "python_llg" || state.solverTarget === "mumax3") {
     if (state.solverDrafts?.mumax3?.modelKind === "spinvault_mtj_free_layer_switching_v1") {
       return "spinvault_mtj_free_layer_switching_v1";
@@ -28,7 +29,7 @@ export function resolveRunModelLabel(state) {
  * @param {import("./types").SimulatorState} state
  * @param {import("./types").JobRecord | null | undefined} job
  * @param {import("./types").SimulationResult | null | undefined} result
- * @returns {"demo" | "python_llg_twin" | "mumax3_smoke" | import("./types").MumaxModelKind | "other"}
+ * @returns {"demo" | "python_llg_twin" | "python_micromagnetic" | "mumax3_smoke" | import("./types").MumaxModelKind | "other"}
  */
 export function resolveDisplayedRunModelLabel(state, job, result) {
   if (result?.source === "demo_fixture") return "demo";
@@ -44,6 +45,7 @@ export function resolveDisplayedRunModelLabel(state, job, result) {
   }
   if (kind === "spinvault_mtj_free_layer_v0") return "spinvault_mtj_free_layer_v0";
   if (result?.source === "python_llg_twin") return "python_llg_twin";
+  if (result?.source === "python_micromagnetic") return "python_micromagnetic";
   if (kind === "smoke" || result?.source === "mumax3") return "mumax3_smoke";
   return resolveRunModelLabel(state);
 }
@@ -74,6 +76,12 @@ export function bannerCopyForRunModel(kind) {
     return {
       title: "MTJ free-layer switching · field pulse",
       note: "Magnetization dynamics for one free layer with uniaxial anisotropy. If source is python_llg_twin this is CPU macrospin LLG, not MuMax3. Switching is threshold-classified from m(t). MgO/TMR/resistance are not simulated."
+    };
+  }
+  if (kind === "python_micromagnetic") {
+    return {
+      title: "Python mesh LLGS",
+      note: "Local 64×32×1 finite-difference LLGS with Newell FFT demagnetization. Spatial maps are simulated mesh frames. Not MuMax3. Not a measured-device prediction."
     };
   }
   if (kind === "python_llg_twin") {
@@ -158,6 +166,10 @@ const FEATURED_METRIC_IDS = [
   "final-max-abs-m",
   "raw-max-component-delta",
   "ovf-frame-count",
+  "mesh-frame-count",
+  "exchange-length",
+  "timestep-criterion",
+  "seed",
   "final-alignment-state",
   "final-pinned-alignment",
   "switching-occurred",

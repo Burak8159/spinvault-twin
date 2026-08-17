@@ -129,4 +129,16 @@ describe("serializeSimulationRequest", () => {
     assert.equal("fieldPulseAmplitude" in (mumax ?? {}), false);
     assert.equal(payload.controls.temperature.value, 0);
   });
+
+  it("includes STT current and timestep for the local Python mesh solver", () => {
+    const state = createDefaultState();
+    const { payload, warnings } = serializeSimulationRequest(state, "python_micromagnetic");
+    const draft = payload.solverDrafts?.mumax3;
+    assert.equal(payload.requestedSolver, "python_micromagnetic");
+    assert.equal(draft?.currentDensity?.value, 2e11);
+    assert.equal(draft?.timeStepHint?.value, 1);
+    assert.equal(draft?.sttLambda?.value, 1);
+    assert.equal(draft?.fieldLikeRatio?.value, 0);
+    assert.equal(warnings.length, 0);
+  });
 });

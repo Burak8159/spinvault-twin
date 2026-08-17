@@ -114,7 +114,7 @@ describe("MuMax3FrameAnimator viewport ownership", () => {
   it("animates when the host reports ovf-frame-count without embedding the frames array", () => {
     const result = {
       source: "mumax3",
-      isPhysicalSimulation: true,
+      isPhysicalSimulation: Boolean(1),
       artifacts: { scriptPreview: "// mx3" },
       metrics: [{ id: "ovf-frame-count", displayValue: "53" }]
     };

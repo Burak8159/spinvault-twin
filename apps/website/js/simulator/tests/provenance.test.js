@@ -32,8 +32,8 @@ describe("result provenance", () => {
     assert.equal(resultsPanelMessage({ ...base, status: "cancelled" })?.kind, "warning");
     assert.match(
       resultsPanelMessage({ ...base, status: "running" })?.body ?? "",
-      /Python LLG|No physics solver|Physical/i
+      /Python mesh LLGS|Python LLG|No physics solver|Physical/i
     );
-    assert.match(resultsPanelMessage({ ...base, status: "idle" })?.body ?? "", /Python LLG/i);
+    assert.match(resultsPanelMessage({ ...base, status: "idle" })?.body ?? "", /Python mesh|Python LLG/i);
   });
 });

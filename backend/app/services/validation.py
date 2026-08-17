@@ -154,7 +154,7 @@ def validate_simulation_request(request: SimulationRequest) -> ValidationResult:
             )
         )
 
-    if request.requested_solver not in {"demo", "python_llg", "mumax3"}:
+    if request.requested_solver not in {"demo", "python_llg", "python_micromagnetic", "mumax3"}:
         result.warnings.append(
             JobWarning(
                 code="solver-pending",

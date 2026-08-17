@@ -453,8 +453,8 @@ describe("scientific board render", () => {
         },
         { caption: "frame 0" }
       );
-      assert.match(svg.getAttribute("aria-label") ?? "", /MuMax3 OVF snapshot/);
-      assert.ok(svg.children.some((child) => child.getAttribute("data-source") === "mumax3-ovf"));
+      assert.match(svg.getAttribute("aria-label") ?? "", /Mesh snapshot/);
+      assert.ok(svg.children.some((child) => child.getAttribute("data-source") === "mesh-frame"));
       assert.equal(
         svg.all().filter((node) => node.attributes.get("data-magnetization-arrow") === "true").length,
         2
@@ -462,7 +462,7 @@ describe("scientific board render", () => {
     });
   });
 
-  it("keeps the scientific board collapsed by default", () => {
-    assert.equal(DEFAULT_SCIENTIFIC_BOARD_OPEN, false);
+  it("keeps the scientific dashboard open by default", () => {
+    assert.equal(DEFAULT_SCIENTIFIC_BOARD_OPEN, true);
   });
 });

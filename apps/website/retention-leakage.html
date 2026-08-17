@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SpinVault Twin | Retention &amp; Leakage</title>
+  <link rel="stylesheet" href="styles.css?v=spinvault-twin-57-20260817" />
+  <style>
+    body.device-chain-page {
+      margin: 0;
+      min-height: 100dvh;
+      background: #05070a;
+      color: #e2e8f0;
+    }
+    .dc-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+    .dc-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .dc-top h1 {
+      margin: 0;
+      font-size: 1.45rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .dc-top p {
+      margin: 6px 0 0;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      max-width: 52ch;
+    }
+    .dc-nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .dc-nav a {
+      color: #93c5fd;
+      text-decoration: none;
+      border: 1px solid #1e3a5f;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .dc-nav a:hover {
+      border-color: #60a5fa;
+      color: #e2e8f0;
+    }
+    .dc-banner {
+      margin: 0 0 28px;
+      padding: 12px 14px;
+      border: 1px solid #854d0e;
+      background: #1c1408;
+      color: #fde68a;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .dc-section {
+      margin-bottom: 36px;
+    }
+    .dc-section h2 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      letter-spacing: 0.03em;
+    }
+    .dc-section .meta {
+      margin: 0 0 14px;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      max-width: 70ch;
+    }
+    .dc-figure {
+      border: 1px solid #1e293b;
+      background: #070b10;
+      padding: 8px;
+    }
+    .dc-figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .dc-figure figcaption {
+      margin-top: 8px;
+      padding: 0 4px 4px;
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+    .dc-badge {
+      display: inline-block;
+      margin-right: 8px;
+      padding: 2px 7px;
+      border: 1px solid #a16207;
+      color: #fde68a;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+  </style>
+</head>
+<body class="device-chain-page">
+  <main class="dc-shell">
+    <header class="dc-top">
+      <div>
+        <h1>Retention &amp; barrier leakage</h1>
+        <p>NumPy + matplotlib figures from the analytical pMTJ device chain. Same equations as the Twin dashboard, not a measured device.</p>
+      </div>
+      <nav class="dc-nav" aria-label="Twin links">
+        <a href="matplotlib-twin.html">NumPy mesh Twin</a>
+        <a href="simulator.html">Open simulator</a>
+        <a href="index.html">Site</a>
+      </nav>
+    </header>
+
+    <p class="dc-banner">
+      <span class="dc-badge">ANALYTICAL MODEL</span>
+      Néel–Arrhenius retention and Tsu–Esaki tunnel current over an exact 1D barrier.
+      Barrier height, effective mass, and Fermi level are placeholders. Magnetization dynamics live in the Python mesh solver, not here.
+    </p>
+
+    <section class="dc-section">
+      <h2>Retention dwell time</h2>
+      <p class="meta">τ = τ₀ e<sup>Δ</sup> with τ₀ = 1 ns. The reference pillar sits above the ten-year line; heating collapses Δ through 1/T.</p>
+      <figure class="dc-figure">
+        <img src="figures/device-chain/retention_dwell_time.png" alt="Retention dwell time versus Delta and temperature" width="1180" height="460" />
+        <figcaption>Source: notebooks/pmtj_retention_and_leakage.ipynb · backend/app/physics/device_chain.py</figcaption>
+      </figure>
+    </section>
+
+    <section class="dc-section">
+      <h2>Design map and flip probability</h2>
+      <p class="meta">Δ across diameter and K<sub>u1</sub>, with the thin-film demagnetizing floor marked. Flip probability vs elapsed time for fixed Δ.</p>
+      <figure class="dc-figure">
+        <img src="figures/device-chain/retention_design_map.png" alt="Retention design map and flip probability curves" width="1180" height="480" />
+        <figcaption>Hatched region: K<sub>u1</sub> below ½ μ₀ M<sub>s</sub>² loses the perpendicular easy axis.</figcaption>
+      </figure>
+    </section>
+
+    <section class="dc-section">
+      <h2>Leakage anatomy</h2>
+      <p class="meta">T(E), the Tsu–Esaki supply N(E), and their product. Almost all of the leak comes from a narrow band just below E<sub>F</sub>.</p>
+      <figure class="dc-figure">
+        <img src="figures/device-chain/leakage_integrand.png" alt="Barrier transmission, supply function, and leakage integrand" width="1180" height="440" />
+        <figcaption>Zero bias carries no net current even though electrons tunnel both ways.</figcaption>
+      </figure>
+    </section>
+
+    <section class="dc-section">
+      <h2>Leakage sensitivities</h2>
+      <p class="meta">Exponential in barrier thickness and height; J–V through the same barrier at three thicknesses.</p>
+      <figure class="dc-figure">
+        <img src="figures/device-chain/leakage_sensitivities.png" alt="Leakage versus thickness, height, and bias" width="1180" height="440" />
+        <figcaption>~2.1 decades of current density per nanometre of barrier for the placeholder stack.</figcaption>
+      </figure>
+    </section>
+
+    <section class="dc-section">
+      <h2>Retention vs leakage window</h2>
+      <p class="meta">Both constraints scale with D². Retention wants a wider pillar; the current budget wants a narrower one.</p>
+      <figure class="dc-figure">
+        <img src="figures/device-chain/retention_vs_leakage_window.png" alt="Design window between retention and leakage current" width="1180" height="560" />
+        <figcaption>The current budget line is illustrative only — not a product specification.</figcaption>
+      </figure>
+    </section>
+  </main>
+</body>
+</html>

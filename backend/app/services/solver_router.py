@@ -8,6 +8,7 @@ from app.solvers.demo import DemoSolver
 from app.solvers.kwant import KwantSolver
 from app.solvers.mumax3 import Mumax3Solver
 from app.solvers.python_llg import PythonLlgAdapter
+from app.solvers.python_micromagnetic import PythonMicromagneticAdapter
 from app.solvers.surrogate import SurrogateSolver
 
 
@@ -16,6 +17,7 @@ class SolverRouter:
         self._adapters: dict[SolverTarget, SolverAdapter] = adapters or {
             "demo": DemoSolver(),
             "python_llg": PythonLlgAdapter(),
+            "python_micromagnetic": PythonMicromagneticAdapter(),
             "mumax3": Mumax3Solver(),
             "kwant": KwantSolver(),
             "surrogate": SurrogateSolver(),

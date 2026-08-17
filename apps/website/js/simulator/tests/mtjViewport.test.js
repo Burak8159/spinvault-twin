@@ -611,7 +611,7 @@ describe("scientific OVF map honesty", () => {
         { meanMz: 1 }
       );
       const shaft = arrowShaft(svg);
-      assert.equal(shaft.attributes.get("stroke"), "rgb(220, 38, 38)");
+      assert.equal(shaft.attributes.get("stroke"), "rgb(255, 26, 26)");
     });
     withFakeSvg((svg) => {
       renderOvfFrameViewport(
@@ -629,7 +629,7 @@ describe("scientific OVF map honesty", () => {
         { meanMz: -1 }
       );
       const shaft = arrowShaft(svg);
-      assert.equal(shaft.attributes.get("stroke"), "rgb(37, 99, 235)");
+      assert.equal(shaft.attributes.get("stroke"), "rgb(20, 118, 255)");
     });
   });
 

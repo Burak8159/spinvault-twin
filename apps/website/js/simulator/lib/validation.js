@@ -151,6 +151,14 @@ export function validateScenario(state) {
       field: "solverTarget",
       message: "Solver target is not recognized."
     });
+  } else if (solverTarget === "python_micromagnetic") {
+    issues.push({
+      id: "solver-python-micromagnetic",
+      severity: "warning",
+      field: "solverTarget",
+      message:
+        "Local CPU finite-difference LLGS on a 2-D mesh with Newell FFT demagnetization. nz=1: no through-thickness structure. Not MuMax3. Not a measured-device prediction. Spatial maps appear only from returned mesh frames."
+    });
   } else if (solverTarget === "python_llg") {
     issues.push({
       id: "solver-python-llg",

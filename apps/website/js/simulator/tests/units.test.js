@@ -38,7 +38,7 @@ describe("parseNumericInput", () => {
 
     assert.equal(hydrated.scenarioId, "mtj-pillar-demo");
     assert.equal(hydrated.title, "PMTJ free-layer switching");
-    assert.equal(hydrated.solverTarget, "python_llg");
+    assert.equal(hydrated.solverTarget, "python_micromagnetic");
     assert.equal(hydrated.geometry.cellShape, "rectangle");
     assert.equal(hydrated.controls.mode, "time_domain");
     assert.equal(hydrated.solverDrafts.mumax3.modelKind, "spinvault_mtj_free_layer_switching_v1");

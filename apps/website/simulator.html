@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SpinVault Twin | Simulator</title>
     <meta name="description" content="SpinVault Twin engineering workspace. Demo fixtures locally; MuMax3/Kwant/surrogate submit to the API and stay not_configured until wired." />
-    <link rel="stylesheet" href="styles.css?v=spinvault-twin-49-20260817" />
-    <link rel="stylesheet" href="simulator.css?v=spinvault-twin-49-20260817" />
+    <link rel="stylesheet" href="styles.css?v=spinvault-twin-56-20260817" />
+    <link rel="stylesheet" href="simulator.css?v=spinvault-twin-56-20260817" />
     <script>
       (() => {
         const fallbackApiUrl = "http://localhost:8001";
@@ -24,8 +24,8 @@
         window.SPINVAULT_API_URL = (configuredApiUrl || window.SPINVAULT_API_URL || fallbackApiUrl).replace(/\/$/, "");
       })();
     </script>
-    <script defer src="script.js?v=spinvault-twin-49-20260817"></script>
-    <script type="module" src="js/simulator/main.js?v=spinvault-twin-49-20260817"></script>
+    <script defer src="script.js?v=spinvault-twin-56-20260817"></script>
+    <script type="module" src="js/simulator/main.js?v=spinvault-twin-56-20260817"></script>
   </head>
   <body class="simulator-app">
     <a class="sv-skip" href="#sv-workspace">Skip to simulator workspace</a>
@@ -43,7 +43,7 @@
             </svg>
             <span>SpinVault Twin</span>
           </a>
-          <p class="sv-honesty-banner" id="sv-honesty-banner" title="MuMax3 computes free-layer micromagnetics only. MgO/reference are context. Quantum Wave is an analytical proxy until Kwant is connected.">MuMax3 free-layer · OVF when frames exist</p>
+          <p class="sv-honesty-banner" id="sv-honesty-banner" title="Python mesh LLGS computes free-layer magnetization on a local 64×32×1 grid. MR is an analytical model. 3D extrusion is visualization-only.">Python mesh LLGS · simulated maps when frames exist</p>
         </div>
 
         <label class="sv-scenario-select">
@@ -418,7 +418,7 @@
         <div class="sv-main">
         <section class="sv-stage" id="sv-device" aria-label="Device viewport">
           <div class="sv-toolbar" aria-label="Simulation controls">
-            <button class="sv-run" id="sv-run" type="button">Run Python LLG</button>
+            <button class="sv-run" id="sv-run" type="button">Run Python mesh</button>
             <button class="sv-run sv-exit-fullscreen" id="sv-exit-fullscreen" type="button" hidden>Exit fullscreen</button>
             <button class="sv-icon-btn" id="sv-pause" type="button" title="Play/pause" aria-label="Play or pause" aria-pressed="false">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>

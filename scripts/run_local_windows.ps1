@@ -112,7 +112,7 @@ try {
         throw "Python 3.9 or newer is required. Install a current Python release, delete backend\.venv, and try again."
     }
 
-    & $VenvPython -c "import fastapi, pydantic_settings, uvicorn" 2>$null
+    & $VenvPython -c "import fastapi, pydantic_settings, uvicorn, numpy, matplotlib, PIL" 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "First run: installing dependencies (internet is needed once)..."
         & $VenvPython -m pip install --disable-pip-version-check `
@@ -133,11 +133,10 @@ try {
     Remove-Item Env:\SPINVAULT_WORKER_ENABLED -ErrorAction SilentlyContinue
 
     Write-Host "Starting the local website..."
-    $WebsiteScript = '"' + (Join-Path $RepoRoot "scripts\serve_website.py") + '"'
     $WebProcess = Start-Process `
         -FilePath $VenvPython `
         -ArgumentList @(
-            $WebsiteScript,
+            (Join-Path $RepoRoot "scripts\serve_website.py"),
             "--host", $HostAddress,
             "--port", "$WebPort"
         ) `
@@ -148,15 +147,19 @@ try {
     Wait-ForApi
 
     $SimulatorUrl = "http://${HostAddress}:${WebPort}/simulator.html?api=http://${HostAddress}:${ApiPort}"
+    $MatplotlibUrl = "http://${HostAddress}:${WebPort}/matplotlib-twin.html?api=http://${HostAddress}:${ApiPort}"
+    $RetentionUrl = "http://${HostAddress}:${WebPort}/retention-leakage.html"
     Write-Host ""
     Write-Host "SpinVault Twin is running locally."
     Write-Host ""
-    Write-Host "  Simulator: $SimulatorUrl"
-    Write-Host "  API docs:  http://${HostAddress}:${ApiPort}/docs"
+    Write-Host "  Simulator:        $SimulatorUrl"
+    Write-Host "  Matplotlib Twin:  $MatplotlibUrl"
+    Write-Host "  Retention plots:  $RetentionUrl"
+    Write-Host "  API docs:         http://${HostAddress}:${ApiPort}/docs"
     Write-Host ""
-    Write-Host "Opening the simulator in your default browser..."
+    Write-Host "Opening the matplotlib Twin in your default browser..."
     Write-Host "Keep this window open. Press Ctrl+C to stop."
-    Start-Process $SimulatorUrl
+    Start-Process $MatplotlibUrl
 
     while (-not $ApiProcess.HasExited -and -not $WebProcess.HasExited) {
         Start-Sleep -Seconds 1

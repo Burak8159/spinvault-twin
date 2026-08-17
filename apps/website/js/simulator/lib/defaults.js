@@ -254,6 +254,12 @@ export function applySwitchingV1Preset(state) {
 
 /** @type {Record<import("./types").SolverTarget, { label: string, connected: boolean, note: string, apiRoutable: boolean }>} */
 export const SOLVER_TARGETS = {
+  python_micromagnetic: {
+    label: "Python mesh LLGS",
+    connected: true,
+    apiRoutable: true,
+    note: "Local CPU 64×32×1 finite-difference LLGS with Newell FFT demagnetization. Not MuMax3. Spatial maps are simulated mesh frames."
+  },
   python_llg: {
     label: "Python LLG",
     connected: true,
@@ -293,7 +299,7 @@ export function createDefaultScenario() {
   return {
     scenarioId: "mtj-pillar-demo",
     title: "PMTJ free-layer switching",
-    solverTarget: "python_llg",
+    solverTarget: "python_micromagnetic",
     geometry: {
       freeLayerThickness: qty({ value: 1.2, unit: "nm" }),
       freeLayerLength: qty({ value: 80, unit: "nm" }),
@@ -340,9 +346,9 @@ export function createDefaultScenario() {
         meshCellSize: {
           x: qty({ value: 1.25, unit: "nm" }),
           y: qty({ value: 1.25, unit: "nm" }),
-          z: qty({ value: 0.6, unit: "nm" })
+          z: qty({ value: 1.2, unit: "nm" })
         },
-        gridSize: { nx: 64, ny: 32, nz: 2 },
+        gridSize: { nx: 64, ny: 32, nz: 1 },
         saturationMagnetization: qty({ value: 1000000, unit: "A/m" }),
         exchangeStiffness: qty({ value: 1e-11, unit: "J/m" }),
         dampingAlpha: qty({ value: 0.01, unit: "dimensionless" }),
@@ -354,9 +360,11 @@ export function createDefaultScenario() {
         fieldPulseAmplitude: qty({ value: 0.6, unit: "T", source: "preset" }),
         fieldPulseDuration: qty({ value: 0.5, unit: "ns", source: "preset" }),
         switchingThreshold: 0.8,
-        currentDensity: qty({ value: 1e10, unit: "A/m^2" }),
+        currentDensity: qty({ value: 2e11, unit: "A/m^2" }),
         simulationTime: qty({ value: 2, unit: "ns" }),
-        timeStepHint: qty({ value: 1, unit: "ps" })
+        timeStepHint: qty({ value: 1, unit: "ps" }),
+        sttLambda: qty({ value: 1, unit: "dimensionless" }),
+        fieldLikeRatio: qty({ value: 0, unit: "dimensionless" })
       },
       kwant: {
         latticeModel: "placeholder_1d",
@@ -608,7 +616,7 @@ export function hydrateSavedState(saved) {
   hydrated.scenarioId = hydrateText(base.scenarioId, saved.scenarioId);
   hydrated.title = hydrateText(base.title, saved.title);
   hydrated.solverTarget = hydrateEnum(base.solverTarget, saved.solverTarget, /** @type {import("./types").SolverTarget[]} */ (Object.keys(SOLVER_TARGETS)));
-  if (hydrated.solverTarget === "mumax3") hydrated.solverTarget = "python_llg";
+  if (hydrated.solverTarget === "mumax3") hydrated.solverTarget = "python_micromagnetic";
   hydrated.geometry.cellShape = hydrateEnum(base.geometry.cellShape, saved.geometry?.cellShape, [
     "ellipse",
     "rectangle",
@@ -725,6 +733,18 @@ export function hydrateSavedState(saved) {
     hydrated.solverDrafts.mumax3.timeStepHint = hydrateQuantity(
       base.solverDrafts.mumax3.timeStepHint,
       saved.solverDrafts?.mumax3?.timeStepHint
+    );
+  }
+  if (hydrated.solverDrafts.mumax3.sttLambda && base.solverDrafts.mumax3.sttLambda) {
+    hydrated.solverDrafts.mumax3.sttLambda = hydrateQuantity(
+      base.solverDrafts.mumax3.sttLambda,
+      saved.solverDrafts?.mumax3?.sttLambda
+    );
+  }
+  if (hydrated.solverDrafts.mumax3.fieldLikeRatio && base.solverDrafts.mumax3.fieldLikeRatio) {
+    hydrated.solverDrafts.mumax3.fieldLikeRatio = hydrateQuantity(
+      base.solverDrafts.mumax3.fieldLikeRatio,
+      saved.solverDrafts?.mumax3?.fieldLikeRatio
     );
   }
   if (hydrated.solverDrafts.mumax3.anisotropyAxis) {

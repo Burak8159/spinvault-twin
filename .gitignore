@@ -22,3 +22,6 @@ venv/
 # Generated simulation outputs
 physics/**/outputs/
 ml/datasets/
+
+# Rebuildable sendable archives
+*.zip

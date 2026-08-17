@@ -1,0 +1,375 @@
+{
+  "generatedBy": "scripts/export_device_chain_golden.mjs",
+  "source": "apps/website/js/simulator/lib/devicePhysics.js",
+  "note": "Golden values for the NumPy port. Analytical models only; not measured device data.",
+  "volume": [
+    {
+      "input": {
+        "lengthNm": 40,
+        "widthNm": 40,
+        "thicknessNm": 1.2,
+        "shape": "ellipse"
+      },
+      "volumeM3": 1.5079644737231008e-24
+    },
+    {
+      "input": {
+        "lengthNm": 40,
+        "widthNm": 40,
+        "thicknessNm": 1.2,
+        "shape": "rectangle"
+      },
+      "volumeM3": 1.92e-24
+    },
+    {
+      "input": {
+        "lengthNm": 60,
+        "widthNm": 30,
+        "thicknessNm": 2,
+        "shape": "ellipse"
+      },
+      "volumeM3": 2.8274333882308144e-24
+    }
+  ],
+  "anisotropy": [
+    {
+      "input": {
+        "anisotropyJPerM3": 800000,
+        "saturationMagnetizationAPerM": 1000000,
+        "easyAxis": "perpendicular"
+      },
+      "effectiveJPerM3": 171681.46928204142,
+      "shapeTermJPerM3": 628318.5307179586
+    },
+    {
+      "input": {
+        "anisotropyJPerM3": 800000,
+        "saturationMagnetizationAPerM": 1000000,
+        "easyAxis": "in_plane"
+      },
+      "effectiveJPerM3": 800000,
+      "shapeTermJPerM3": 0
+    },
+    {
+      "input": {
+        "anisotropyJPerM3": 500000,
+        "saturationMagnetizationAPerM": 1000000,
+        "easyAxis": "perpendicular"
+      },
+      "effectiveJPerM3": 0,
+      "shapeTermJPerM3": 628318.5307179586
+    }
+  ],
+  "stability": [
+    {
+      "input": {
+        "anisotropyJPerM3": 170000,
+        "volumeM3": 1.5079644737231006e-24,
+        "temperatureK": 300
+      },
+      "energyBarrierJ": 2.563539605329271e-19,
+      "energyBarrierEv": 1.6000355709402208,
+      "delta": 61.89213926033508
+    },
+    {
+      "input": {
+        "anisotropyJPerM3": 800000,
+        "volumeM3": 1.5079644737231006e-24,
+        "temperatureK": 300
+      },
+      "energyBarrierJ": 1.2063715789784805e-18,
+      "energyBarrierEv": 7.529579157365745,
+      "delta": 291.2571259309886
+    },
+    {
+      "input": {
+        "anisotropyJPerM3": 800000,
+        "volumeM3": 1.5079644737231006e-24,
+        "temperatureK": 400
+      },
+      "energyBarrierJ": 1.2063715789784805e-18,
+      "energyBarrierEv": 7.529579157365745,
+      "delta": 218.44284444824143
+    }
+  ],
+  "retention": [
+    {
+      "delta": 0,
+      "tauSeconds": 1.0000000000000007e-9,
+      "tauYears": 3.168808781402897e-17,
+      "flipProbability": 1,
+      "meetsTenYearRetention": false
+    },
+    {
+      "delta": 10,
+      "tauSeconds": 0.000022026465794806733,
+      "tauYears": 6.979765823385408e-13,
+      "flipProbability": 1,
+      "meetsTenYearRetention": false
+    },
+    {
+      "delta": 40,
+      "tauSeconds": 235385266.83702016,
+      "tauYears": 7.458909005660131,
+      "flipProbability": 0.7383319707268008,
+      "meetsTenYearRetention": false
+    },
+    {
+      "delta": 60,
+      "tauSeconds": 114200738981568510,
+      "tauYears": 3618803045.274942,
+      "flipProbability": 2.7633446642028048e-9,
+      "meetsTenYearRetention": true
+    },
+    {
+      "delta": 80,
+      "tauSeconds": 5.5406223843935134e+25,
+      "tauYears": 1755717286610361000,
+      "flipProbability": 0,
+      "meetsTenYearRetention": true
+    },
+    {
+      "delta": 200,
+      "tauSeconds": 7.225973768125754e+77,
+      "tauYears": 2.2897729130623856e+70,
+      "flipProbability": 0,
+      "meetsTenYearRetention": true
+    },
+    {
+      "delta": 700,
+      "tauSeconds": 1.0142320547349764e+295,
+      "tauYears": 3.213907441424495e+287,
+      "flipProbability": 0,
+      "meetsTenYearRetention": true
+    },
+    {
+      "delta": 720,
+      "tauSeconds": 4.9207009302636795e+303,
+      "tauYears": 1.5592760318476943e+296,
+      "flipProbability": 0,
+      "meetsTenYearRetention": true
+    },
+    {
+      "delta": 1500,
+      "tauSeconds": "Infinity",
+      "tauYears": "Infinity",
+      "flipProbability": 0,
+      "meetsTenYearRetention": true
+    }
+  ],
+  "supply": [
+    {
+      "input": {
+        "energyEv": 0.2,
+        "fermiEv": 0.8,
+        "biasVolts": 0,
+        "temperatureK": 300
+      },
+      "supply": 0
+    },
+    {
+      "input": {
+        "energyEv": 0.8,
+        "fermiEv": 0.8,
+        "biasVolts": 0.3,
+        "temperatureK": 300
+      },
+      "supply": 0.6931380558339232
+    },
+    {
+      "input": {
+        "energyEv": 1.4,
+        "fermiEv": 0.8,
+        "biasVolts": -0.3,
+        "temperatureK": 400
+      },
+      "supply": -0.00016598093154810258
+    },
+    {
+      "input": {
+        "energyEv": 0.05,
+        "fermiEv": 0.8,
+        "biasVolts": 0.6,
+        "temperatureK": 77
+      },
+      "supply": 90.42481653140693
+    }
+  ],
+  "transmission": [
+    {
+      "input": {
+        "barrierThicknessNm": 1,
+        "barrierHeightEv": 1.2,
+        "electronEnergyEv": 0.4,
+        "effectiveMassRatio": 0.4,
+        "biasVolts": 0,
+        "temperatureK": 300
+      },
+      "transmission": 0.010754658892870268,
+      "reflection": 0.9892453411071298,
+      "kappa": 2898101027.5235415,
+      "regime": "tunneling"
+    },
+    {
+      "input": {
+        "barrierThicknessNm": 1.5,
+        "barrierHeightEv": 1.2,
+        "electronEnergyEv": 0.4,
+        "effectiveMassRatio": 0.4,
+        "biasVolts": 0,
+        "temperatureK": 300
+      },
+      "transmission": 0.0005955338277399778,
+      "reflection": 0.9994044661722602,
+      "kappa": 2898101027.5235415,
+      "regime": "tunneling"
+    },
+    {
+      "input": {
+        "barrierThicknessNm": 1,
+        "barrierHeightEv": 1.2,
+        "electronEnergyEv": 1.6,
+        "effectiveMassRatio": 0.4,
+        "biasVolts": 0,
+        "temperatureK": 300
+      },
+      "transmission": 0.692877531749414,
+      "reflection": 0.3071224682505863,
+      "kappa": 0,
+      "regime": "over_barrier"
+    },
+    {
+      "input": {
+        "barrierThicknessNm": 1,
+        "barrierHeightEv": 1.2,
+        "electronEnergyEv": 1.2,
+        "effectiveMassRatio": 0.4,
+        "biasVolts": 0,
+        "temperatureK": 300
+      },
+      "transmission": 0.24098585846710135,
+      "reflection": 0.7590141415328984,
+      "kappa": 0,
+      "regime": "over_barrier"
+    },
+    {
+      "input": {
+        "barrierThicknessNm": 0.8,
+        "barrierHeightEv": 2,
+        "electronEnergyEv": 0.9,
+        "effectiveMassRatio": 0.8,
+        "biasVolts": 0,
+        "temperatureK": 300
+      },
+      "transmission": 0.0018104431416446716,
+      "reflection": 0.9981895568583554,
+      "kappa": 4805956856.4195175,
+      "regime": "tunneling"
+    }
+  ],
+  "leakage": [
+    {
+      "input": {
+        "barrierThicknessNm": 1,
+        "barrierHeightEv": 1.2,
+        "effectiveMassRatio": 0.4,
+        "biasVolts": 0.1,
+        "temperatureK": 300,
+        "fermiEv": 0.8,
+        "energySamples": 33
+      },
+      "currentDensityAPerM2": 86418299885.59991,
+      "regime": "tunneling"
+    },
+    {
+      "input": {
+        "barrierThicknessNm": 1.2,
+        "barrierHeightEv": 1.2,
+        "effectiveMassRatio": 0.4,
+        "biasVolts": 0.1,
+        "temperatureK": 300,
+        "fermiEv": 0.8,
+        "energySamples": 33
+      },
+      "currentDensityAPerM2": 33166745018.546608,
+      "regime": "tunneling"
+    },
+    {
+      "input": {
+        "barrierThicknessNm": 1,
+        "barrierHeightEv": 1.2,
+        "effectiveMassRatio": 0.4,
+        "biasVolts": 0.4,
+        "temperatureK": 300,
+        "fermiEv": 0.8,
+        "energySamples": 65
+      },
+      "currentDensityAPerM2": 351976067593.66174,
+      "regime": "tunneling"
+    },
+    {
+      "input": {
+        "barrierThicknessNm": 1,
+        "barrierHeightEv": 0.6,
+        "effectiveMassRatio": 0.4,
+        "biasVolts": 0.1,
+        "temperatureK": 300,
+        "fermiEv": 0.8,
+        "energySamples": 33
+      },
+      "currentDensityAPerM2": 1207291196938.07,
+      "regime": "over_barrier"
+    },
+    {
+      "input": {
+        "barrierThicknessNm": 1,
+        "barrierHeightEv": 1.2,
+        "effectiveMassRatio": 0.4,
+        "biasVolts": 0.1,
+        "temperatureK": 77,
+        "fermiEv": 0.8,
+        "energySamples": 33
+      },
+      "currentDensityAPerM2": 84926475297.22948,
+      "regime": "tunneling"
+    }
+  ],
+  "julliere": [
+    {
+      "input": {
+        "conductanceAvgS": 0.0001,
+        "polarizationFree": 0.6,
+        "cosTheta": 1
+      },
+      "conductanceS": 0.000136,
+      "resistanceOhm": 7352.941176470588,
+      "resistanceParallelOhm": 7352.941176470588,
+      "resistanceAntiparallelOhm": 15624.999999999998,
+      "tmrRatio": 1.125
+    },
+    {
+      "input": {
+        "conductanceAvgS": 0.0001,
+        "polarizationFree": 0.6,
+        "cosTheta": -1
+      },
+      "conductanceS": 0.00006400000000000001,
+      "resistanceOhm": 15624.999999999998,
+      "resistanceParallelOhm": 7352.941176470588,
+      "resistanceAntiparallelOhm": 15624.999999999998,
+      "tmrRatio": 1.125
+    },
+    {
+      "input": {
+        "conductanceAvgS": 0.0001,
+        "polarizationFree": 0.6,
+        "cosTheta": 0.25
+      },
+      "conductanceS": 0.000109,
+      "resistanceOhm": 9174.311926605504,
+      "resistanceParallelOhm": 7352.941176470588,
+      "resistanceAntiparallelOhm": 15624.999999999998,
+      "tmrRatio": 1.125
+    }
+  ]
+}

@@ -57,7 +57,11 @@ export function resultsPanelMessage(snapshot) {
       body:
         solver === "demo"
           ? "Demo workflow in progress. No physics solver is executing."
-          : `Waiting on the Python LLG solver (${solver}).`
+          : solver === "python_micromagnetic"
+            ? "Waiting on the local Python mesh LLGS solver."
+            : solver === "python_llg"
+              ? "Waiting on the local Python LLG twin."
+              : `Waiting on the local solver (${solver}).`
     };
   }
 
@@ -89,7 +93,9 @@ export function resultsPanelMessage(snapshot) {
     kind: "empty",
     title: "No result yet",
     body:
-      "Run the Python LLG twin. The spin view plays the returned m(t). Not MuMax3."
+      snapshot.state.solverTarget === "python_micromagnetic"
+        ? "Run the Python mesh LLGS solver. Spatial maps appear only from returned mesh frames. Not MuMax3."
+        : "Run the Python LLG twin. The spin view plays the returned m(t). Not MuMax3."
   };
 }
 
@@ -97,13 +103,14 @@ export function resultsPanelMessage(snapshot) {
  * Remaining limitations visible in Settings.
  */
 export const REMAINING_LIMITATIONS = [
-  "The spin view plays the CPU Python macrospin LLGS trajectory as a uniform free-layer moment. That is not a spatial micromagnetic mesh.",
+  "Python mesh LLGS is a local 64×32×1 finite-difference solve with Newell FFT demagnetization. nz=1: no through-thickness domains. Spatial maps appear only from returned mesh frames.",
+  "The Python LLG option is a uniform free-layer macrospin. That is not a spatial mesh.",
   "Write current is Slonczewski spin-transfer torque. The zero-temperature threshold is Jc0 = 4 e α K_eff t / (ħ η). Coherent rotation overestimates real nucleation Jc; values below Jc0 will not reverse the bit.",
-  "Temperature enters the integrator as a Brown thermal field. T = 0 is deterministic RK4; T > 0 is stochastic Heun. Static 0/1 presets turn the write current off so the bit can hold.",
+  "Temperature enters the integrator as a Brown thermal field. T = 0 is deterministic; T > 0 is stochastic Heun with independent noise in every magnetic cell on the mesh.",
   "Quantum Wave is an analytical 1D finite-barrier Schrödinger model. Its barrier and bias also set the Tsu-Esaki leakage current, and the solved magnetization angle sets the Julliere resistance, so both views read one chain.",
   "Retention is a macrospin Néel-Arrhenius estimate from K_eff = K_u1 - mu_0 M_s^2/2, the free-layer volume, and temperature. The 1 ns attempt time is assumed, and it is not a product retention rating.",
   "Barrier height, tunneling effective mass, and the lead Fermi level are placeholders until replaced with reviewed values.",
-  "MuMax3 is not used. No OVF, CUDA, or RTX claims.",
+  "MuMax3 is not used. Mesh maps are Python NPZ frames, not OVF/CUDA/RTX.",
   "Kwant and surrogate adapters remain not_configured.",
   "Local demo adapter remains available as a no-network fallback.",
   "Material presets are example or review-needed labels, not verified constants."

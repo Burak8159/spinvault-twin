@@ -24,6 +24,8 @@ from app.solvers.mumax3.metrics import magnetization_metrics_from_series
 from app.solvers.mumax3.runner import prepare_job_dir, write_request_json, write_result_json
 from app.solvers.mumax3.script import resolve_model_kind
 from app.solvers.mumax3.validate_request import validate_mumax_request
+from app.solvers.python_micromagnetic.adapter import PythonMicromagneticAdapter
+from app.solvers.python_micromagnetic.matplotlib_report import render_matplotlib_twin_report
 from app.storage.protocol import JobStore
 from app.workers.artifacts import write_artifact_manifest
 from app.workers.gpu import detect_gpu, run_acceleration_label
@@ -78,6 +80,20 @@ class LocalWorker:
             return True
         job = self.store.get(job_id)
         if job is None:
+            return True
+        if job.requested_solver == "python_micromagnetic":
+            try:
+                self._process_python_micromagnetic_job(job)
+            except Exception as exc:  # noqa: BLE001 - worker must never die on one job
+                latest = self.store.get(job_id) or job
+                self._fail(
+                    latest,
+                    code="worker_crash",
+                    message=f"Worker crashed while processing job: {exc}",
+                    phase="failed",
+                )
+            finally:
+                self.queue.clear_cancelled(job_id)
             return True
         if job.requested_solver != "mumax3":
             self._fail(
@@ -565,6 +581,133 @@ class LocalWorker:
                 return
             raise
 
+    def _process_python_micromagnetic_job(self, job: JobRecord) -> None:
+        assert job.request is not None
+        job_dir = prepare_job_dir(Path(self.settings.job_root), job.job_id)
+        write_request_json(job_dir / "request.json", job.request)
+        started = utc_now()
+        adapter = PythonMicromagneticAdapter()
+
+        def checkpoint(phase: JobStatus, message: str) -> JobRecord:
+            if self.queue.is_cancelled(job.job_id):
+                raise RuntimeError("__cancelled__")
+            latest = self.store.get(job.job_id) or job
+            latest.status = phase
+            latest.progress_phase = phase
+            latest.worker_id = self.worker_id
+            latest.updated_at = utc_now()
+            if latest.started_at is None:
+                latest.started_at = started
+            latest.provenance = Provenance(
+                created_at=utc_now(),
+                created_by="system",
+                solver="python_micromagnetic",
+                notes=[f"phase={phase}", f"worker_id={self.worker_id}", message],
+            )
+            updated = self.store.update(latest)
+            write_status_document(
+                job_dir,
+                WorkerStatusDocument(
+                    job_id=updated.job_id,
+                    status=updated.status,
+                    progress_phase=updated.progress_phase or updated.status,
+                    started_at=updated.started_at,
+                    updated_at=updated.updated_at,
+                    completed_at=updated.completed_at,
+                    worker_id=self.worker_id,
+                    solver="python_micromagnetic",
+                    gpu=updated.gpu,
+                    warnings=updated.warnings,
+                    errors=updated.errors,
+                    message=message,
+                ),
+            )
+            return updated
+
+        try:
+            job = checkpoint("preparing", "Worker claimed Python micromagnetic job.")
+            job = checkpoint("running_solver", "Integrating finite-difference LLGS.")
+
+            def cancel_check() -> bool:
+                return self.queue.is_cancelled(job.job_id)
+
+            def progress(step: int, n_steps: int) -> None:
+                if n_steps <= 0:
+                    return
+                pct = min(99, int(100 * step / n_steps))
+                checkpoint("running_solver", f"python_micromagnetic {step}/{n_steps} ({pct}%)")
+
+            outcome = adapter.execute(
+                job.request,
+                job_id=job.job_id,
+                cancel_check=cancel_check,
+                progress=progress,
+            )
+            if outcome.status == "cancelled":
+                self._mark_cancelled(job.job_id, job_dir=job_dir, started=started)
+                return
+            job = checkpoint("parsing_outputs", "Rendering NumPy/matplotlib Twin report from mesh frames.")
+            if outcome.result is not None:
+                try:
+                    report = render_matplotlib_twin_report(
+                        job_dir,
+                        outcome.result,
+                        request=job.request,
+                    )
+                    if outcome.result.artifacts is not None:
+                        manifest = dict(outcome.result.artifacts.manifest or {})
+                        manifest["matplotlibTwin"] = report
+                        outcome.result.artifacts.manifest = manifest
+                except Exception as exc:  # noqa: BLE001 - preserve valid physics result
+                    outcome.warnings.append(
+                        JobWarning(
+                            code="matplotlib-report-failed",
+                            message=(
+                                "The micromagnetic solve completed, but the matplotlib report "
+                                f"could not be rendered: {exc}"
+                            ),
+                        )
+                    )
+            latest = self.store.get(job.job_id) or job
+            latest.status = outcome.status
+            latest.progress_phase = outcome.status
+            latest.result = outcome.result
+            latest.errors = list(outcome.errors)
+            latest.warnings = list(latest.warnings) + list(outcome.warnings)
+            latest.worker_id = self.worker_id
+            latest.updated_at = utc_now()
+            latest.completed_at = latest.updated_at
+            latest.provenance = outcome.provenance or latest.provenance
+            self.store.update(latest)
+            if outcome.result is not None:
+                write_result_json(
+                    job_dir / "result.json",
+                    outcome.result.model_dump(by_alias=True, mode="json"),
+                )
+            write_artifact_manifest(job_dir, job_id=latest.job_id, solver="python_micromagnetic")
+            write_status_document(
+                job_dir,
+                WorkerStatusDocument(
+                    job_id=latest.job_id,
+                    status=latest.status,
+                    progress_phase=latest.progress_phase or latest.status,
+                    started_at=latest.started_at,
+                    updated_at=latest.updated_at,
+                    completed_at=latest.completed_at,
+                    worker_id=self.worker_id,
+                    solver="python_micromagnetic",
+                    gpu=latest.gpu,
+                    warnings=latest.warnings,
+                    errors=latest.errors,
+                    message=f"Finished with status={latest.status}",
+                ),
+            )
+        except RuntimeError as exc:
+            if str(exc) == "__cancelled__":
+                self._mark_cancelled(job.job_id, job_dir=job_dir, started=started)
+                return
+            raise
+
     def _mark_cancelled(self, job_id: str, job_dir: Path | None = None, gpu=None, started=None) -> None:
         job = self.store.get(job_id)
         if job is None:
@@ -584,7 +727,7 @@ class LocalWorker:
         job.provenance = Provenance(
             created_at=utc_now(),
             created_by="system",
-            solver=job.requested_solver if job.requested_solver == "mumax3" else "none",
+            solver=job.requested_solver if job.requested_solver in {"mumax3", "python_micromagnetic"} else "none",
             notes=["Job cancelled before completion."],
         )
         self.store.update(job)
@@ -619,7 +762,7 @@ class LocalWorker:
         job.provenance = Provenance(
             created_at=utc_now(),
             created_by="system",
-            solver=job.requested_solver if job.requested_solver == "mumax3" else "none",
+            solver=job.requested_solver if job.requested_solver in {"mumax3", "python_micromagnetic"} else "none",
             notes=[message],
         )
         self.store.update(job)

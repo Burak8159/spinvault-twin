@@ -15,7 +15,8 @@ export function classifyDeviceObservables(result) {
   const isMumax = result?.source === "mumax3" && result.isPhysicalSimulation;
   const isPythonLlg = result?.source === "python_llg_twin" && result.isPhysicalSimulation;
   const hasTableM = series.some((item) => /m[xyz]/i.test(`${item.id} ${item.label}`));
-  const isSimulatedMeanM = (isMumax || isPythonLlg) && hasTableM;
+  const isPythonMesh = result?.source === "python_micromagnetic" && result.isPhysicalSimulation;
+  const isSimulatedMeanM = (isMumax || isPythonLlg || isPythonMesh) && hasTableM;
   const hasEnergy = series.some((item) => /e_total|e_exch|e_demag|e_anis|energy/i.test(`${item.id} ${item.label}`));
   const hasKwant = result?.source === "kwant";
   const metric = (/** @type {string} */ id) => metrics.find((entry) => entry.id === id)?.displayValue ?? null;
@@ -31,9 +32,11 @@ export function classifyDeviceObservables(result) {
     row(
       "m-field",
       "Magnetization field m(x,y,z)",
-      isMumax && hasOvf ? "SIMULATED" : "UNAVAILABLE",
-      hasOvf ? `${result?.artifacts?.frames?.length} OVF frame(s)` : "unavailable",
-      "MuMax3 OVF magnetization only. The Python macrospin twin has no mesh."
+      isMumax || isPythonMesh ? "SIMULATED" : "UNAVAILABLE",
+      hasOvf ? `${result?.artifacts?.frames?.length} mesh frame(s)` : "unavailable",
+      isPythonMesh
+        ? "Python finite-difference LLGS mesh. Not OVF. Not MuMax3."
+        : "MuMax3 OVF magnetization only. The Python macrospin twin has no mesh."
     ),
     row(
       "mean-m",
@@ -42,7 +45,9 @@ export function classifyDeviceObservables(result) {
       hasTableM ? "m(t) table" : "unavailable",
       isPythonLlg
         ? "CPU macrospin LLGS (one free-layer moment, Slonczewski STT, optional Brown field). Not a spatial average."
-        : "Spatially averaged MuMax3 table columns when present."
+        : isPythonMesh
+          ? "Spatial average over magnetic cells of the Python mesh."
+          : "Spatially averaged MuMax3 table columns when present."
     ),
     row(
       "switching-time",
@@ -58,7 +63,7 @@ export function classifyDeviceObservables(result) {
       "Energy",
       hasEnergy ? "SIMULATED" : "UNAVAILABLE",
       hasEnergy ? "table energy columns" : "unavailable",
-      "Only if MuMax3 table columns were parsed."
+      "Energy components from the Python mesh (or parsed table columns). Unavailable when the solver does not return them."
     ),
     row(
       "resistance",

@@ -29,6 +29,7 @@ const required = [
   "js/simulator/lib/tunnelingModel.js",
   "js/simulator/lib/quantumTransportView.js",
   "js/simulator/lib/paths.js",
+  "js/simulator/components/scientificBoard.js",
   "js/simulator/components/mumax3FrameAnimator.js",
   "js/simulator/components/mtjViewportLayout.js",
   "js/simulator/components/spinView.js",

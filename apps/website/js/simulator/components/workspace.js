@@ -192,7 +192,7 @@ export function mountSimulatorWorkspace(store) {
       const writeCurrent = 10 ** (Number(controls.currentDensityLog10) || 0);
       store.updateState((state) => ({
         ...state,
-        solverTarget: "python_llg",
+        solverTarget: "python_micromagnetic",
         controls: {
           ...state.controls,
           temperature: {
@@ -233,7 +233,7 @@ export function mountSimulatorWorkspace(store) {
           }
         }
       }));
-      solverSelect.value = "python_llg";
+      solverSelect.value = "python_micromagnetic";
       mumaxModelSelect.value = mumaxPatch.modelKind;
       root.dataset.mumaxModelKind = mumaxPatch.modelKind;
       root.dataset.mumaxStatePreset = mumaxPatch.statePreset;
@@ -381,7 +381,7 @@ export function mountSimulatorWorkspace(store) {
   fillSelect(
     solverSelect,
     Object.entries(SOLVER_TARGETS)
-      .filter(([value]) => value === "python_llg" || value === "demo")
+      .filter(([value]) => value === "python_micromagnetic" || value === "python_llg" || value === "demo")
       .map(([value, meta]) => ({
         value,
         label: meta.label,
@@ -660,7 +660,7 @@ export function mountSimulatorWorkspace(store) {
       .map(
         (slot) => `
       <figure class="sv-board-snapshot" data-snapshot-slot="${slot.slot}" data-frame-index="${slot.arrayIndex}" tabindex="0" role="button">
-        <svg viewBox="0 0 120 138" role="img" aria-label="Loading OVF snapshot ${slot.caption}"></svg>
+        <svg viewBox="0 0 120 138" role="img" aria-label="Loading mesh snapshot ${slot.caption}"></svg>
         <figcaption>${slot.caption}</figcaption>
       </figure>`
       )
@@ -853,7 +853,11 @@ export function mountSimulatorWorkspace(store) {
           : switchingMetric?.displayValue === "yes"
             ? `<div class="sv-state sv-state-busy" role="status" data-switching-outcome="occurred"><strong>Switching occurred</strong><p>m(t) crossed the configured threshold. Classification only — not a device validation claim.</p></div>`
             : "";
-      const showScientificBoard = result.source === "mumax3" || Boolean(result.artifacts?.frames?.length);
+      const showScientificBoard =
+        result.source === "python_micromagnetic" ||
+        result.source === "mumax3" ||
+        result.source === "python_llg_twin" ||
+        Boolean(result.artifacts?.frames?.length);
       const finalMx = (result.metrics ?? []).find((metric) => metric.id === "final-mx")?.displayValue ?? "n/a";
       const finalMy = (result.metrics ?? []).find((metric) => metric.id === "final-my")?.displayValue ?? "n/a";
       const finalMz = (result.metrics ?? []).find((metric) => metric.id === "final-mz")?.displayValue ?? "n/a";
@@ -863,15 +867,12 @@ export function mountSimulatorWorkspace(store) {
         ${switchingFailedHtml}
         <div class="sv-result-compact-cards">
           <article><span>Status</span><strong>${snapshot.status}</strong></article>
-          <article><span>OVF frames</span><strong>${ovfFrames.length || "none"}</strong></article>
+          <article><span>Mesh frames</span><strong>${ovfFrames.length || "none"}</strong></article>
           <article><span>Final mean m</span><strong>${finalMx} / ${finalMy} / ${finalMz}</strong></article>
         </div>
         ${
           showScientificBoard
-            ? `<details class="sv-scientific-board-disclosure"${DEFAULT_SCIENTIFIC_BOARD_OPEN ? " open" : ""}>
-                <summary>Scientific board / plots / provenance</summary>
-                <section data-scientific-board-root></section>
-              </details>`
+            ? `<section class="sv-scientific-dashboard" data-scientific-board-root></section>`
             : ""
         }
         <details class="sv-result-details">
@@ -935,6 +936,7 @@ export function mountSimulatorWorkspace(store) {
             controlsRoot: animatorRoot,
             jobId: frameJobId,
             frames: ovfFrames,
+            source: result.source,
             geometry: snapshot.state.geometry,
             runMetrics: result.metrics ?? [],
             magnetization,
@@ -958,7 +960,7 @@ export function mountSimulatorWorkspace(store) {
         mumaxPlaybackRoot.replaceChildren();
         renderOvfFrameErrorViewport(
           svg,
-          "The completed MuMax3 result did not include a job ID for its attached OVF frames.",
+          "The completed result did not include a job ID for its attached mesh frames.",
           snapshot.state.geometry
         );
       } else {
@@ -1084,9 +1086,11 @@ export function mountSimulatorWorkspace(store) {
     runButton.textContent =
       snapshot.state.solverTarget === "demo"
         ? "Run demo"
-        : snapshot.state.solverTarget === "python_llg"
-          ? "Run Python LLG"
-          : `Submit ${solverMeta?.label ?? snapshot.state.solverTarget}`;
+        : snapshot.state.solverTarget === "python_micromagnetic"
+          ? "Run Python mesh"
+          : snapshot.state.solverTarget === "python_llg"
+            ? "Run Python LLG"
+            : `Submit ${solverMeta?.label ?? snapshot.state.solverTarget}`;
     runButton.title = modelCopy.note;
     solverNote.textContent = solverMeta?.note ?? "Unknown solver target.";
     if (snapshot.state.solverTarget === "demo") {
@@ -1196,7 +1200,7 @@ export function mountSimulatorWorkspace(store) {
       }
       return {
         ...state,
-        solverTarget: "python_llg",
+        solverTarget: "python_micromagnetic",
         controls: kind === "spinvault_mtj_free_layer_v0"
           ? { ...state.controls, duration: { value: 0.1, unit: "ns", source: "user" } }
           : state.controls,
@@ -1550,7 +1554,7 @@ export function mountSimulatorWorkspace(store) {
       log("error", "Run blocked by UI validation errors.");
       return;
     }
-    if (snapshot.state.solverTarget === "python_llg") {
+    if (snapshot.state.solverTarget === "python_llg" || snapshot.state.solverTarget === "python_micromagnetic") {
       void enterSimFullscreen();
     }
     jobController = new AbortController();
@@ -1678,12 +1682,9 @@ export function mountSimulatorWorkspace(store) {
       log("warning", "Saved scenario could not be parsed and was ignored.");
     }
   } else {
-    log("info", "Workspace ready. Python LLG is the magnetization solver. Quantum Wave stays analytical Schrödinger.");
+    log("info", "Workspace ready. Python mesh LLGS is the magnetization solver. Quantum Wave stays analytical Schrödinger.");
   }
   if (resetSavedScenario && launchParams.has("api")) {
-    log("info", "API launch URL detected; Python LLG will use the configured backend.");
+    log("info", "API launch URL detected; the Python mesh solver will use the configured backend.");
   }
-  queueMicrotask(() => {
-    if (!runButton.disabled) runButton.click();
-  });
 }

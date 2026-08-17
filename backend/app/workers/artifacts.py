@@ -35,6 +35,7 @@ def build_artifact_manifest(job_dir: Path, *, job_id: str, solver: str) -> Artif
         ("stdout", "log", "stdout.log", "stdout"),
         ("stderr", "log", "stderr.log", "stderr"),
         ("result", "json", "result.json", "Parsed result"),
+        ("magnetization", "frame", "magnetization.npz", "Python mesh magnetization"),
         ("artifacts", "json", "artifacts.json", "Artifact manifest"),
     ]
     for artifact_id, kind, relative, label in known:
@@ -49,7 +50,7 @@ def build_artifact_manifest(job_dir: Path, *, job_id: str, solver: str) -> Artif
         for path in sorted(outputs.rglob("*")):
             if path.is_file():
                 relative = str(path.relative_to(job_dir))
-                kind = "frame" if path.suffix.lower() == ".ovf" else "output"
+                kind = "frame" if path.suffix.lower() in {".ovf", ".npz"} else "output"
                 refs.append(
                     ArtifactRef(
                         id=f"output-{len(refs)}",

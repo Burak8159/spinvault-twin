@@ -38,9 +38,12 @@ if [ ! -x "$PYTHON" ]; then
   python3 -m venv "$VENV"
 fi
 
+"$PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' ||
+  die "Python 3.9 or newer is required. Install a current Python, delete backend/.venv, and re-run."
+
 # Installing needs the network, so only do it when a dependency is actually
 # missing. A provisioned venv then starts fully offline.
-if ! "$PYTHON" -c 'import fastapi, pydantic_settings, uvicorn' >/dev/null 2>&1; then
+if ! "$PYTHON" -c 'import fastapi, pydantic_settings, uvicorn, numpy, matplotlib, PIL' >/dev/null 2>&1; then
   echo "setup: installing backend dependencies (needs network once)"
   "$PYTHON" -m pip install --disable-pip-version-check -r "$REPO_ROOT/backend/requirements.txt" ||
     die "dependency install failed. Fix the pip error above, then re-run."
@@ -88,6 +91,10 @@ curl -fsS -m 2 "http://$HOST:$API_PORT/health" >/dev/null 2>&1 ||
 
 SOLVERS="$(curl -fsS -m 5 "http://$HOST:$API_PORT/api/solvers" 2>/dev/null || true)"
 case "$SOLVERS" in
+  *'"pythonMicromagnetic":{"configured":true'*) MESH="ready (CPU 64×32×1 mesh LLGS on this machine)" ;;
+  *) MESH="NOT configured" ;;
+esac
+case "$SOLVERS" in
   *'"pythonLlg":{"configured":true'*) LLG="ready (CPU macrospin LLG on this machine)" ;;
   *) LLG="NOT configured" ;;
 esac
@@ -96,19 +103,23 @@ cat <<EOF
 
   SpinVault Twin is running locally.
 
-    simulator   http://$HOST:$WEB_PORT/simulator.html
-    website     http://$HOST:$WEB_PORT/index.html
-    API health  http://$HOST:$API_PORT/health
-    API docs    http://$HOST:$API_PORT/docs
+    matplotlib Twin   http://$HOST:$WEB_PORT/matplotlib-twin.html?api=http://$HOST:$API_PORT
+    simulator         http://$HOST:$WEB_PORT/simulator.html?api=http://$HOST:$API_PORT
+    retention plots   http://$HOST:$WEB_PORT/retention-leakage.html
+    website           http://$HOST:$WEB_PORT/index.html
+    API health        http://$HOST:$API_PORT/health
+    API docs          http://$HOST:$API_PORT/docs
 
-    python_llg  $LLG
-    mumax3      only runs when MUMAX3_BINARY points at a local binary
-
-  The simulator defaults to http://localhost:8001 for the API. On a non-default
-  port, open: http://$HOST:$WEB_PORT/simulator.html?api=http://$HOST:$API_PORT
+    python_micromagnetic  $MESH
+    python_llg            $LLG
+    mumax3                not used by default
 
   Press Ctrl+C to stop both servers.
 
 EOF
+
+if command -v open >/dev/null 2>&1; then
+  open "http://$HOST:$WEB_PORT/matplotlib-twin.html?api=http://$HOST:$API_PORT"
+fi
 
 wait

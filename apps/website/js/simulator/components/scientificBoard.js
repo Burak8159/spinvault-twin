@@ -5,12 +5,13 @@
 
 import { getOvfFrame } from "../../api/client.js";
 import { buildScientificPlot, scientificAxisMarkup } from "../lib/charts.js";
+import { julliereTransport } from "../lib/devicePhysics.js";
 import { mzColor } from "./mtjViewportLayout.js";
 import { downsampleOvfVectors } from "./viewport.js";
 import { buildScientificBoardModel } from "../lib/scientificBoardModel.js";
 import { provenanceBadge } from "../lib/deviceObservables.js";
 
-export const DEFAULT_SCIENTIFIC_BOARD_OPEN = false;
+export const DEFAULT_SCIENTIFIC_BOARD_OPEN = true;
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -55,9 +56,9 @@ export function renderSnapshotMap(svg, frame, options) {
   const pad = 8;
   svg.setAttribute("viewBox", `0 0 ${size} ${size + 18}`);
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", `MuMax3 OVF snapshot ${options.caption} · display ${display.nx}×${display.ny} from raw ${nx}×${ny}`);
+  svg.setAttribute("aria-label", `Mesh snapshot ${options.caption} · display ${display.nx}×${display.ny} from raw ${nx}×${ny}`);
   svg.replaceChildren();
-  const root = el("g", { class: "sv-board-snapshot-map", "data-source": "mumax3-ovf" });
+  const root = el("g", { class: "sv-board-snapshot-map", "data-source": "mesh-frame" });
   root.append(
     el("rect", {
       x: pad,
@@ -115,6 +116,155 @@ export function renderSnapshotMap(svg, frame, options) {
   });
   caption.textContent = options.caption;
   svg.append(root, caption);
+}
+
+/**
+ * nz=1 lateral cut: one row of the same frame, not a fabricated z-stack.
+ * @param {SVGSVGElement} svg
+ * @param {import("../lib/types").OvfFrameData} frame
+ * @param {{ caption: string }} options
+ */
+export function renderCrossSection(svg, frame, options) {
+  const metadata = frame.metadata ?? {};
+  const nx = Math.max(1, Number(metadata.xnodes) || Math.max(...frame.vectors.map((v) => v.x)) + 1);
+  const ny = Math.max(1, Number(metadata.ynodes) || Math.max(...frame.vectors.map((v) => v.y)) + 1);
+  const midY = Math.floor(ny / 2);
+  const row = frame.vectors.filter((v) => v.y === midY && v.z === Math.min(...frame.vectors.map((cell) => cell.z)));
+  const width = 220;
+  const height = 44;
+  svg.setAttribute("viewBox", `0 0 ${width} ${height + 14}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", `nz=1 cross-section ${options.caption}`);
+  svg.replaceChildren();
+  const root = el("g", { class: "sv-board-cross-section", "data-source": "mesh-frame" });
+  const cellW = (width - 8) / Math.max(1, nx);
+  row.forEach((vector) => {
+    root.append(
+      el("rect", {
+        x: 4 + vector.x * cellW,
+        y: 6,
+        width: Math.max(1, cellW - 0.4),
+        height: 24,
+        fill: mzFill(vector.mz)
+      })
+    );
+  });
+  const caption = el("text", {
+    x: width / 2,
+    y: height + 10,
+    "text-anchor": "middle",
+    fill: "#94a3b8",
+    "font-size": 7,
+    "font-weight": 600
+  });
+  caption.textContent = `${options.caption} · y=${midY} · nz=1`;
+  svg.append(root, caption);
+}
+
+/**
+ * Surface extrusion of the same mz map. Visualization only.
+ * @param {SVGSVGElement} svg
+ * @param {import("../lib/types").OvfFrameData | null} frame
+ */
+export function renderExtrudedSurface(svg, frame) {
+  svg.setAttribute("viewBox", "0 0 240 140");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Visualization-only surface extrusion of the active mz map");
+  svg.replaceChildren();
+  const badge = el("text", { x: 8, y: 12, fill: "#fbbf24", "font-size": 7, "font-weight": 700 });
+  badge.textContent = "VISUALIZATION";
+  svg.append(badge);
+  if (!frame?.vectors?.length) {
+    const empty = el("text", { x: 120, y: 72, "text-anchor": "middle", fill: "#64748b", "font-size": 8 });
+    empty.textContent = "No mesh frame";
+    svg.append(empty);
+    return;
+  }
+  const metadata = frame.metadata ?? {};
+  const nx = Math.max(1, Number(metadata.xnodes) || 8);
+  const ny = Math.max(1, Number(metadata.ynodes) || 4);
+  const display = downsampleOvfVectors(frame.vectors, { nx, ny, activeZ: 0, targetNx: Math.min(16, nx), targetNy: Math.min(8, ny) });
+  for (const vector of display.vectors) {
+    const px = 40 + vector.x * 10 + vector.y * 4;
+    const py = 110 - vector.y * 8 - vector.mz * 18;
+    svg.append(
+      el("rect", {
+        x: px,
+        y: py,
+        width: 9,
+        height: 7,
+        fill: mzFill(vector.mz),
+        opacity: 0.9,
+        transform: `skewX(-18)`
+      })
+    );
+  }
+}
+
+/**
+ * Uniform macrospin fallback: one vector, never a fake spatial texture.
+ * @param {SVGSVGElement} svg
+ * @param {{ mx: number, my: number, mz: number, caption: string }} options
+ */
+export function renderUniformMacrospinMap(svg, options) {
+  svg.setAttribute("viewBox", "0 0 120 138");
+  svg.replaceChildren();
+  const color = mzFill(options.mz);
+  const label = el("text", { x: 60, y: 58, "text-anchor": "middle", fill: "#0b0f14", "font-size": 8, "font-weight": 700 });
+  label.textContent = "UNIFORM";
+  svg.append(
+    el("rect", { x: 8, y: 8, width: 104, height: 104, fill: color, stroke: "#334155" }),
+    label
+  );
+  const note = el("text", { x: 60, y: 72, "text-anchor": "middle", fill: "#0b0f14", "font-size": 6 });
+  note.textContent = "not a spatial mesh";
+  svg.append(note);
+  const caption = el("text", { x: 60, y: 128, "text-anchor": "middle", fill: "#cbd5e1", "font-size": 8, "font-weight": 700 });
+  caption.textContent = options.caption;
+  svg.append(caption);
+}
+
+/**
+ * Analytical Julliere MR(θ) driven by solved ⟨mz⟩. Not a transport solver.
+ * @param {HTMLElement} host
+ * @param {ReturnType<typeof buildScientificBoardModel>} model
+ */
+export function renderMrPanel(host, model) {
+  const mz = model.magnetization?.mz;
+  if (!mz?.points?.length) {
+    host.innerHTML = `<div class="sv-board-empty" data-board-empty="mr"><strong>No m(t) to drive MR(θ)</strong><p>The analytical Julliere curve is shown only from a solved mz series.</p></div>`;
+    return;
+  }
+  const polarization = 0.6;
+  /** @type {import("../lib/types").ResultSeries} */
+  const series = {
+    id: "mr",
+    label: "R(θ)/R_P",
+    xLabel: mz.xLabel,
+    xUnit: mz.xUnit,
+    yLabel: "R/R_P",
+    yUnit: "dimensionless",
+    points: mz.points.map((point) => {
+      const transport = julliereTransport({
+        conductanceAvgS: 1,
+        polarizationFree: polarization,
+        cosTheta: point.y
+      });
+      const rp = transport.resistanceParallelOhm;
+      return { x: point.x, y: Number.isFinite(rp) && rp > 0 ? transport.resistanceOhm / rp : 1 };
+    })
+  };
+  const plot = buildScientificPlot([series], { width: 280, height: 160, yMin: 0.9, yMax: 2.2 });
+  const paths = plot.paths
+    .map((path) => `<path d="${path.d}" fill="none" stroke="#f59e0b" stroke-width="1.8" data-series="mr"/>`)
+    .join("");
+  host.innerHTML = `
+    <svg class="sv-board-plot" data-board-mr-plot="true" viewBox="0 0 ${plot.width} ${plot.height}" role="img" aria-label="Analytical Julliere MR versus time">
+      ${scientificAxisMarkup(plot, { xLabel: `time (${mz.xUnit || "s"})`, yLabel: "R/R_P" })}
+      ${paths}
+    </svg>
+    <p class="sv-board-caption">ANALYTICAL MODEL · G(θ)=G_avg(1+P² cosθ), P=0.6, cosθ≈⟨mz⟩. Not a transport solver.</p>
+  `;
 }
 
 /**
@@ -189,7 +339,7 @@ export function renderTracePanel(host, model) {
       <li>snapshot markers</li>
       <li>final state: <strong>${model.diagnostics.finalState}</strong></li>
     </ul>
-    <p class="sv-board-caption">Panel B · mean m from parsed MuMax3 table series only · threshold lines are classification aids, not TMR.</p>
+    <p class="sv-board-caption">Panel B · mean m from the returned magnetization table · threshold lines are classification aids, not TMR.</p>
   `;
 }
 
@@ -223,11 +373,11 @@ export function renderDiagnosticsPanel(host, model) {
     ["Initial mean m", d.initialMean.label],
     ["Final mean m", d.finalMean.label],
     ["Max |Δm| frame-to-frame", d.maxFrameDelta == null ? "n/a" : d.maxFrameDelta.toExponential(3)],
-    ["OVF frame count", d.frameCount == null ? "n/a" : String(d.frameCount)],
+    ["Mesh / OVF frame count", d.frameCount == null ? "n/a" : String(d.frameCount)],
     ["Grid dimensions", d.grid ?? "n/a"],
     ["Simulation duration", d.duration ?? "n/a"],
     ["Solver source", d.solverSource],
-    ["MuMax3 / CUDA label", d.solverVersion || d.acceleration || "n/a"],
+    ["Solver version", d.solverVersion || d.acceleration || "n/a"],
     ["Switching threshold", d.switchingThreshold == null ? "n/a" : `±${d.switchingThreshold}`],
     ["Switching outcome", d.switchingOutcome],
     ["Final P/AP state", d.finalState]
@@ -342,47 +492,84 @@ export class ScientificBoardController {
     this.destroyed = false;
     this.model = model;
     if (options.jobId !== undefined) this.jobId = options.jobId;
-    this.root.className = "sv-scientific-board";
+    this.root.className = "sv-scientific-board sv-scientific-dashboard";
     this.root.setAttribute("data-scientific-board", "true");
-    this.root.setAttribute("aria-label", "MuMax3 scientific simulation board");
+    this.root.setAttribute("aria-label", "PMTJ scientific dashboard");
+    const mesh = model.hasOvfFrames;
+    const uniform = !mesh && model.hasMagnetizationTrace;
     this.root.innerHTML = `
       <header class="sv-board-header">
-        <h3>MuMax3 MTJ cell</h3>
+        <h3>${model.title}</h3>
         <p>${model.honesty}</p>
+        <div class="sv-board-legend" data-mz-legend>
+          <span class="sv-prov-badge" data-class="SIMULATED">SIMULATED</span>
+          <span>mz</span>
+          <span class="sv-mz-scale"><i data-mz="-1"></i><i data-mz="0"></i><i data-mz="1"></i></span>
+          <span>−1 / 0 / +1</span>
+        </div>
       </header>
-      <div class="sv-board-grid">
+      <div class="sv-dash-row" data-row="schematic-snapshots">
+        <section class="sv-board-panel" data-panel="schematic">
+          <h4>MTJ stack</h4>
+          <svg class="sv-dash-schematic" viewBox="0 0 160 120" role="img" aria-label="MTJ stack schematic">
+            <rect x="40" y="16" width="80" height="18" fill="#64748b"/><text x="80" y="28" text-anchor="middle" fill="#0b0f14" font-size="7">reference</text>
+            <rect x="40" y="38" width="80" height="10" fill="#f8fafc"/><text x="80" y="46" text-anchor="middle" fill="#0b0f14" font-size="6">MgO barrier</text>
+            <rect x="40" y="52" width="80" height="18" fill="#dc2626"/><text x="80" y="64" text-anchor="middle" fill="#fff" font-size="7">free (solved)</text>
+            <text x="80" y="92" text-anchor="middle" fill="#94a3b8" font-size="6">schematic · not a field solution</text>
+          </svg>
+        </section>
         <section class="sv-board-panel" data-panel="A">
-          <h4><span>A</span> Time evolution</h4>
+          <h4><span class="sv-prov-badge" data-class="SIMULATED">SIMULATED</span> Top-view snapshots</h4>
           <div class="sv-board-snapshots" data-board-snapshots></div>
-          <p class="sv-board-caption">${
-            model.snapshots.some((slot) => slot.evenSpacing)
-              ? "Evenly spaced frames · event detection not used for this strip."
-              : "Representative frames from mean-m events when detected. Click to seek."
-          } Display downsampled from raw OVF.</p>
-        </section>
-        <section class="sv-board-panel" data-panel="B">
-          <h4><span>B</span> ⟨mx⟩ ⟨my⟩ ⟨mz⟩</h4>
-          <div data-board-trace></div>
-        </section>
-        <section class="sv-board-panel" data-panel="C">
-          <h4><span>C</span> Device state</h4>
-          <div data-board-diagnostics></div>
-        </section>
-        <section class="sv-board-panel" data-panel="D">
-          <h4><span>D</span> Energy</h4>
-          <div data-board-sweep></div>
-        </section>
-        <section class="sv-board-panel" data-panel="E">
-          <h4><span>E</span> Transport</h4>
-          <div data-board-quantum></div>
         </section>
       </div>
+      <section class="sv-board-panel" data-panel="cross">
+        <h4><span class="sv-prov-badge" data-class="SIMULATED">SIMULATED</span> nz=1 lateral cuts · same frames</h4>
+        <div class="sv-board-cross-strip" data-board-cross></div>
+      </section>
+      <div class="sv-dash-row" data-row="plots">
+        <section class="sv-board-panel" data-panel="context">
+          <h4>Device context</h4>
+          <div data-board-diagnostics></div>
+        </section>
+        <section class="sv-board-panel" data-panel="mr">
+          <h4><span class="sv-prov-badge" data-class="MODEL">ANALYTICAL MODEL</span> MR(θ)</h4>
+          <div data-board-mr></div>
+        </section>
+        <section class="sv-board-panel" data-panel="B">
+          <h4><span class="sv-prov-badge" data-class="SIMULATED">SIMULATED</span> m(t)</h4>
+          <div data-board-trace></div>
+        </section>
+      </div>
+      <div class="sv-dash-row" data-row="viz">
+        <section class="sv-board-panel" data-panel="3d">
+          <h4><span class="sv-prov-badge" data-class="MODEL">VISUALIZATION</span> Surface extrusion</h4>
+          <svg data-board-extrude viewBox="0 0 240 140"></svg>
+        </section>
+        <section class="sv-board-panel" data-panel="states">
+          <h4>P / AP cards</h4>
+          <div data-board-states></div>
+        </section>
+        <section class="sv-board-panel" data-panel="C">
+          <h4>Simulation details</h4>
+          <div data-board-details></div>
+        </section>
+      </div>
+      <section class="sv-board-panel" data-panel="energy">
+        <h4><span class="sv-prov-badge" data-class="SIMULATED">SIMULATED</span> Energy</h4>
+        <div data-board-sweep></div>
+      </section>
     `;
+    this.root.dataset.uniformFallback = uniform && !mesh ? "true" : "false";
     const snapHost = /** @type {HTMLElement} */ (this.root.querySelector("[data-board-snapshots]"));
+    const crossHost = /** @type {HTMLElement} */ (this.root.querySelector("[data-board-cross]"));
     const traceHost = /** @type {HTMLElement} */ (this.root.querySelector("[data-board-trace]"));
     const diagHost = /** @type {HTMLElement} */ (this.root.querySelector("[data-board-diagnostics]"));
     const sweepHost = /** @type {HTMLElement} */ (this.root.querySelector("[data-board-sweep]"));
-    const quantumHost = /** @type {HTMLElement} */ (this.root.querySelector("[data-board-quantum]"));
+    const mrHost = /** @type {HTMLElement} */ (this.root.querySelector("[data-board-mr]"));
+    const statesHost = /** @type {HTMLElement} */ (this.root.querySelector("[data-board-states]"));
+    const detailsHost = /** @type {HTMLElement} */ (this.root.querySelector("[data-board-details]"));
+    const extrudeSvg = this.root.querySelector("[data-board-extrude]");
     renderTracePanel(traceHost, model);
     const plotNode = traceHost.querySelector("[data-board-trace-plot]");
     plotNode?.addEventListener("click", (event) => {
@@ -393,13 +580,42 @@ export class ScientificBoardController {
       this.onSnapshotClick(Math.round(fraction * lastIndex));
     });
     renderDiagnosticsPanel(diagHost, model);
+    renderMrPanel(mrHost, model);
     if (model.energySeries?.length) {
-      renderSweepPanel(sweepHost, { ...model, sweep: { available: true, series: model.energySeries, axes: [], message: "Energy columns from table.txt" } });
+      renderSweepPanel(sweepHost, { ...model, sweep: { available: true, series: model.energySeries, axes: [], message: "Energy from the Python mesh (or table) at sampled frames." } });
     } else {
-      sweepHost.innerHTML = `<div class="sv-board-empty" data-board-empty="energy"><strong>Unavailable: not output by this run</strong><p>Energy series appear only when MuMax3 table columns are parsed.</p></div>`;
+      sweepHost.innerHTML = `<div class="sv-board-empty" data-board-empty="energy"><strong>Unavailable: not output by this run</strong><p>Energy series appear when the solver returns e_total.</p></div>`;
     }
-    renderQuantumPanel(quantumHost, model);
+    const mzPoints = model.magnetization?.mz?.points ?? [];
+    const lastMz = mzPoints.at(-1)?.y ?? 0;
+    const final = model.diagnostics?.finalState ?? "n/a";
+    statesHost.innerHTML = `
+      <article class="sv-state-card" data-state="P"><strong>P</strong><span>m aligned with polarizer</span></article>
+      <article class="sv-state-card" data-state="AP"><strong>AP</strong><span>m anti-aligned</span></article>
+      <p class="sv-board-caption">Classified state: ${final}. Threshold-only. Not TMR. ⟨mz⟩≈${lastMz.toFixed(3)}</p>
+    `;
+    const d = model.diagnostics ?? {};
+    detailsHost.innerHTML = `
+      <ul class="sv-dash-details">
+        <li>source=${d.solverSource ?? "unknown"}</li>
+        <li>grid=${d.meshLabel ?? d.grid ?? "n/a"}</li>
+        <li>frames=${d.frameCount ?? 0}</li>
+        <li>lex=${d.exchangeLength ?? "n/a"}</li>
+        <li>γΔt B_ex=${d.timestepCriterion ?? "n/a"}</li>
+        <li>seed=${d.seed ?? "n/a"}</li>
+        <li>version=${d.solverVersion ?? "n/a"}</li>
+      </ul>
+    `;
+    if (extrudeSvg instanceof SVGSVGElement) renderExtrudedSurface(extrudeSvg, null);
     this.renderSnapshotPlaceholders(snapHost, model);
+    if (crossHost) {
+      crossHost.innerHTML = model.snapshots
+        .map(
+          (slot) =>
+            `<svg data-cross-slot="${slot.slot}" viewBox="0 0 220 58" role="img" aria-label="Loading cross-section"></svg>`
+        )
+        .join("");
+    }
     void this.loadSnapshots(snapHost, model);
   }
 
@@ -409,14 +625,14 @@ export class ScientificBoardController {
    */
   renderSnapshotPlaceholders(host, model) {
     if (!model.snapshots.length) {
-      host.innerHTML = `<div class="sv-board-empty" data-board-empty="snapshots"><strong>No OVF snapshots</strong><p>This run attached no raw MuMax3 OVF frames.</p></div>`;
+      host.innerHTML = `<div class="sv-board-empty" data-board-empty="snapshots"><strong>No mesh snapshots</strong><p>Spatial maps require returned Python mesh frames. Macrospin stays uniform.</p></div>`;
       return;
     }
     host.innerHTML = model.snapshots
       .map(
         (slot) => `
       <figure class="sv-board-snapshot" data-snapshot-slot="${slot.slot}" data-frame-index="${slot.arrayIndex}" tabindex="0" role="button">
-        <svg viewBox="0 0 120 138" role="img" aria-label="Loading OVF snapshot ${slot.caption}"></svg>
+        <svg viewBox="0 0 120 138" role="img" aria-label="Loading mesh snapshot ${slot.caption}"></svg>
         <figcaption>${slot.caption}</figcaption>
       </figure>`
       )
@@ -451,6 +667,14 @@ export class ScientificBoardController {
           const svg = figure?.querySelector("svg");
           if (svg instanceof SVGSVGElement) {
             renderSnapshotMap(svg, response.frame, { caption: slot.caption });
+            const crossSvg = this.root.querySelector(`[data-cross-slot="${slot.slot}"]`);
+            if (crossSvg instanceof SVGSVGElement) {
+              renderCrossSection(crossSvg, response.frame, { caption: slot.caption });
+            }
+            if (slot.slot === model.snapshots.length - 1 || slot.slot === 0) {
+              const extrudeSvg = this.root.querySelector("[data-board-extrude]");
+              if (extrudeSvg instanceof SVGSVGElement) renderExtrudedSurface(extrudeSvg, response.frame);
+            }
           }
         } catch {
           if (this.destroyed || token !== this.requestToken) return;

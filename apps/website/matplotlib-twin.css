@@ -1,0 +1,394 @@
+body.mpt-page {
+  margin: 0;
+  min-height: 100dvh;
+  background: #05070a;
+  color: #e2e8f0;
+}
+
+.mpt-shell {
+  width: min(1420px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 26px 0 72px;
+}
+
+.mpt-header,
+.mpt-report > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.mpt-header {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.mpt-eyebrow {
+  margin: 0 0 5px;
+  color: #60a5fa;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mpt-header h1,
+.mpt-report h2,
+.mpt-run-panel h2,
+.mpt-empty h2 {
+  margin: 0;
+  letter-spacing: 0.025em;
+}
+
+.mpt-header h1 {
+  font-size: clamp(24px, 3vw, 38px);
+}
+
+.mpt-header > div > p:last-child,
+.mpt-run-panel > div > p,
+.mpt-empty,
+.mpt-runtime {
+  color: #94a3b8;
+  line-height: 1.55;
+}
+
+.mpt-header > div > p:last-child {
+  max-width: 72ch;
+  margin: 7px 0 0;
+}
+
+.mpt-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.mpt-nav a {
+  padding: 8px 11px;
+  border: 1px solid #1e3a5f;
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.mpt-nav a:hover {
+  border-color: #60a5fa;
+  color: #f8fafc;
+}
+
+.mpt-honesty {
+  margin: 18px 0;
+  padding: 11px 13px;
+  border: 1px solid #166534;
+  background: #06140d;
+  color: #bbf7d0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.mpt-honesty strong {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 6px;
+  border: 1px solid #22c55e;
+  font-size: 10px;
+  letter-spacing: 0.07em;
+}
+
+.mpt-honesty span {
+  color: #fde68a;
+}
+
+.mpt-run-panel,
+.mpt-status,
+.mpt-empty,
+.mpt-report {
+  border: 1px solid #1e293b;
+  background: #070b10;
+}
+
+.mpt-run-panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.7fr) minmax(620px, 1.6fr);
+  gap: 18px 28px;
+  padding: 16px;
+}
+
+.mpt-run-panel > div > p {
+  margin: 7px 0 0;
+  font-size: 13px;
+}
+
+#mpt-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+#mpt-form fieldset {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(100px, 1fr));
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #1e293b;
+}
+
+#mpt-form legend {
+  padding: 0 6px;
+  color: #93c5fd;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+#mpt-form label {
+  display: grid;
+  gap: 5px;
+  align-content: end;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#mpt-form input,
+#mpt-form select,
+#mpt-form button,
+#mpt-cancel {
+  min-height: 38px;
+  border: 1px solid #334155;
+  border-radius: 0;
+  background: #05070a;
+  color: #e2e8f0;
+  padding: 7px 9px;
+  font: inherit;
+}
+
+#mpt-form sub {
+  line-height: 0;
+  text-transform: none;
+}
+
+.mpt-form-action {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.mpt-form-action p {
+  margin: 0;
+  color: #fde68a;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+#mpt-form button {
+  border-color: #2563eb;
+  background: #172554;
+  color: #dbeafe;
+  cursor: pointer;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+#mpt-form button:hover {
+  border-color: #60a5fa;
+}
+
+#mpt-form button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.mpt-runtime {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 11px;
+}
+
+.mpt-status {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  margin: 10px 0 22px;
+  padding: 10px 13px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.mpt-status > div:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #e2e8f0;
+}
+
+.mpt-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.mpt-status[data-state="running"] .mpt-status-dot {
+  background: #fbbf24;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.65);
+}
+
+.mpt-status[data-state="complete"] .mpt-status-dot {
+  background: #22c55e;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.65);
+}
+
+.mpt-status[data-state="failed"] .mpt-status-dot {
+  background: #ef4444;
+}
+
+#mpt-cancel {
+  min-height: 30px;
+  padding: 4px 9px;
+  border-color: #7f1d1d;
+  cursor: pointer;
+}
+
+.mpt-empty {
+  padding: 20px;
+}
+
+.mpt-empty ul {
+  margin: 13px 0 0;
+  padding-left: 22px;
+  line-height: 1.8;
+}
+
+.mpt-report {
+  padding: 14px;
+}
+
+.mpt-report > header {
+  padding: 4px 2px 13px;
+}
+
+#mpt-mesh-summary {
+  display: flex;
+  gap: 16px;
+  margin: 0;
+}
+
+#mpt-mesh-summary div {
+  min-width: 78px;
+}
+
+#mpt-mesh-summary dt {
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#mpt-mesh-summary dd {
+  margin: 3px 0 0;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+.mpt-report-honesty {
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border-left: 3px solid #22c55e;
+  background: #06140d;
+  color: #bbf7d0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.mpt-assets {
+  display: grid;
+  gap: 12px;
+}
+
+.mpt-asset {
+  margin: 0;
+  border: 1px solid #1e293b;
+  background: #05070a;
+  padding: 8px;
+}
+
+.mpt-asset img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #05070a;
+}
+
+.mpt-asset figcaption {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 4px 2px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.mpt-asset figcaption strong {
+  color: #e2e8f0;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .mpt-run-panel {
+    grid-template-columns: 1fr;
+  }
+
+  #mpt-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .mpt-shell {
+    width: min(100% - 18px, 1420px);
+    padding-top: 14px;
+  }
+
+  .mpt-header,
+  .mpt-report > header {
+    display: grid;
+  }
+
+  #mpt-form {
+    grid-template-columns: 1fr;
+  }
+
+  #mpt-form fieldset {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mpt-form-action {
+    display: grid;
+  }
+
+  .mpt-status {
+    grid-template-columns: 1fr;
+  }
+
+  #mpt-mesh-summary {
+    flex-wrap: wrap;
+  }
+
+  .mpt-asset figcaption {
+    display: grid;
+    gap: 3px;
+  }
+}

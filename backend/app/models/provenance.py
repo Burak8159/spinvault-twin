@@ -24,7 +24,7 @@ class Provenance(CamelModel):
     created_by: Literal["user", "system", "demo_fixture"] = Field(
         default="system", alias="createdBy"
     )
-    solver: Literal["none", "demo", "mumax3", "kwant", "surrogate", "python_llg"] = "none"
+    solver: Literal["none", "demo", "mumax3", "kwant", "surrogate", "python_llg", "python_micromagnetic"] = "none"
     solver_version: str | None = Field(default=None, alias="solverVersion")
     input_hash: str | None = Field(default=None, alias="inputHash")
     notes: list[str] = Field(default_factory=list)

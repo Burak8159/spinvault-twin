@@ -16,7 +16,7 @@ import { createDefaultState } from "../lib/defaults.js";
 describe("resultView model labels", () => {
   it("distinguishes demo, smoke, and SpinVault MTJ v0", () => {
     const state = createDefaultState();
-    assert.equal(resolveRunModelLabel(state), "spinvault_mtj_free_layer_switching_v1");
+    assert.equal(resolveRunModelLabel(state), "python_micromagnetic");
     state.solverTarget = "demo";
     assert.equal(resolveRunModelLabel(state), "demo");
     state.solverTarget = "mumax3";
