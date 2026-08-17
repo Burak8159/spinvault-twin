@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Technology | SpinVault</title>
+    <link rel="stylesheet" href="styles.css?v=spinvault-blueprint-final5-20260730" />
+    <script defer src="script.js?v=spinvault-blueprint-final5-20260730"></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <div class="bar-inner">
+          <a class="brand" href="index.html">
+            <svg class="brand-mark" aria-hidden="true" viewBox="0 0 80 80" role="img">
+              <g fill="currentColor">
+                <path d="M40 4L52 20H45V28H35V20H28Z" />
+                <circle cx="40" cy="40" r="16" />
+                <rect x="31" y="37" width="18" height="6" rx="3" fill="var(--bg)" />
+                <path d="M40 76L28 60H35V52H45V60H52Z" />
+              </g>
+            </svg>
+            <span>SpinVault</span>
+          </a>
+          <nav class="nav" aria-label="Primary">
+            <a href="index.html">Home</a>
+            <div class="dropdown">
+              <a class="dropdown-trigger" href="company.html">Company</a>
+              <div class="dropdown-menu">
+                <a href="company.html">Overview</a>
+                <a href="company.html#team">Team</a>
+                <a href="company.html#team-system">Team system</a>
+                <a href="company.html#about">About SpinVault</a>
+                <a href="company.html#foundation">Our foundation</a>
+                <a href="company.html#thesis">Company thesis</a>
+                <a href="company.html#who-this-is-for">Who this is for</a>
+                <a href="company.html#how-we-work">How we work</a>
+                <a href="company.html#company-faq">FAQ</a>
+                <a href="company.html#business-model">Business model</a>
+                <a href="company.html#commercial-model">Commercial model</a>
+                <a href="company.html#revenue-architecture">Revenue architecture</a>
+                <a href="company.html#orchestration-moat">Business moat</a>
+                <a href="company.html#funding">Use of funding</a>
+                <a href="company.html#go-to-market">Go-to-market</a>
+                <a href="company.html#milestones">Milestone roadmap</a>
+                <a href="company.html#discipline">Financial discipline</a>
+                <a href="company.html#future-vision">Future vision</a>
+              </div>
+            </div>
+            <div class="dropdown">
+              <a class="dropdown-trigger" href="technology.html">Technology</a>
+              <div class="dropdown-menu">
+                <a class="active" href="technology.html">How it works</a>
+                <a href="technology.html#simulation">Simulation</a>
+                <a href="simulator.html">Twin simulator</a>
+                <a href="digital-twin.html">Digital twin</a>
+                <a href="technology.html#modules">Modules</a>
+              </div>
+            </div>
+            <a href="contact.html">Contact</a>
+            <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle light mode" aria-pressed="false"><span class="toggle-icon toggle-moon">☾</span><span class="toggle-knob"></span><span class="toggle-icon toggle-sun">☀</span></button>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section class="section-card">
+          <div class="section-head">
+            <div><h2>How it works</h2></div>
+            <p>SpinVault is a proposed magnetically guided tunnel-barrier storage concept. The goal is to reduce uncontrolled electron transmission through an ultra-thin barrier and preserve a clearer, more secure storage state.</p>
+          </div>
+          <div class="interface-grid">
+            <div class="system-graphic">
+              <div class="layer"><small>STATE</small><strong>Stored bit as a physical configuration</strong><p>The website frames data as a state that must remain distinguishable despite thermal noise, process variation, and tunneling leakage.</p></div>
+              <div class="layer"><small>BARRIER</small><strong>TiN / Al2O3-compatible tunnel membrane</strong><p>The deck references proven materials and process compatibility. The technical model uses a barrier-height and barrier-width approximation instead of unexplained black-box scores.</p></div>
+              <div class="layer"><small>CONTROL</small><strong>Magnetic stabilization layer</strong><p>Magnetic influence is modeled as a stabilizing term that improves spin selectivity and reduces effective leakage exposure.</p></div>
+            </div>
+            <div class="data-panel">
+              <div class="data-row"><span>Reference barrier height</span><span class="status">3.0 eV</span></div>
+              <div class="data-row"><span>Reference barrier width</span><span class="status">3.0 nm</span></div>
+              <div class="data-row"><span>Reference electron energy</span><span class="status">0.5 eV</span></div>
+              <div class="data-row"><span>Core model</span><span class="status">WKB tunneling + TMR</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-card compare-model" id="compare-model">
+          <div class="section-head">
+            <div><h2>Traditional NAND vs SpinVault</h2></div>
+            <p>Toggle between Traditional NAND and SpinVault to explore how the same physical inputs can produce very different leakage and retention behavior across the small simulations below.</p>
+          </div>
+          <div class="compare-toggle" role="tablist" aria-label="Model toggle">
+            <div class="compare-toggle-btn active" data-model-toggle="nand" role="tab" tabindex="0" aria-selected="true">Traditional NAND</div>
+            <div class="compare-toggle-btn" data-model-toggle="spinvault" role="tab" tabindex="0" aria-selected="false">SpinVault</div>
+          </div>
+          <div class="sim-controls compare-controls">
+            <div class="control-row">
+              <label for="model-barrier"><span>Barrier height</span><span class="dual-readout"><span id="model-barrier-readout">3.0 eV</span><span id="model-barrier-nm-readout">3.0 nm</span></span></label>
+              <input id="model-barrier" type="range" min="0" max="100" step="1" value="42" />
+            </div>
+            <div class="control-row">
+              <label for="model-energy"><span>Electron energy</span><span id="model-energy-readout">0.50 eV</span></label>
+              <input id="model-energy" type="range" min="0" max="100" step="1" value="50" />
+            </div>
+            <div class="control-row">
+              <label for="model-temp"><span>Temperature</span><span id="model-temp-readout">300 K</span></label>
+              <input id="model-temp" type="range" min="0" max="100" step="1" value="34" />
+            </div>
+            <div class="control-row">
+              <label for="model-spin"><span>Spin polarization</span><span id="model-spin-readout">72%</span></label>
+              <input id="model-spin" type="range" min="0" max="100" step="1" value="72" />
+            </div>
+            <div class="control-row">
+              <label for="model-disturbance"><span>Disturbance</span><span id="model-disturbance-readout">20%</span></label>
+              <input id="model-disturbance" type="range" min="0" max="100" step="1" value="20" />
+            </div>
+            <div class="sim-meter" aria-hidden="true"><div class="sim-fill" data-model-fill></div></div>
+            <div class="sim-readout compare-readout">
+              <div><span>Mode</span><strong data-model-mode>Traditional NAND</strong></div>
+              <div><span>Leak</span><strong data-model-primary-leak>36%</strong></div>
+              <div><span>Retention</span><strong data-model-primary-retention>52%</strong></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Fundamentals first</h2></div>
+            <p>The technical foundation combines quantum tunneling through a thin insulating barrier with magnetic-tunnel-junction readout theory.</p>
+          </div>
+          <div class="fundamental-grid">
+            <div class="principle-graphic" aria-label="Storage physics fundamentals diagram">
+              <div class="principle-orbit">
+                <span></span><span></span><span></span><span></span>
+                <strong>Stored state</strong>
+              </div>
+              <div class="principle-flow">
+                <div><small>01</small><strong>Electrons occupy a state</strong><p>Data is represented by a physical condition that must remain distinguishable over time.</p></div>
+                <div><small>02</small><strong>A barrier separates states</strong><p>The tunnel region controls how easily carriers move between stable and unstable configurations.</p></div>
+                <div><small>03</small><strong>A magnetic field biases behavior</strong><p>Field influence is modeled as a control term that reduces random drift and path variance.</p></div>
+                <div><small>04</small><strong>Noise creates leakage pressure</strong><p>Temperature, process variation, and disturbance push the system toward weaker retention.</p></div>
+              </div>
+            </div>
+            <div class="tech-copy">
+              <article>
+                <h3>The central technical question</h3>
+                <p>Can a magnetically guided tunnel membrane produce a larger practical margin between intentional read/write behavior and unwanted leakage? A credible answer requires formulas, assumptions, and failure boundaries, not only a visual demo.</p>
+              </article>
+              <article>
+                <h3>Why tunneling matters</h3>
+                <p>At nanometer scale, electron transmission becomes probabilistic. In the low-bias rectangular-barrier approximation, transmission follows an exponential term, so small changes in barrier width or energy height can create massive changes in leakage.</p>
+              </article>
+              <article>
+                <h3>Why magnetic control matters</h3>
+                <p>Magnetic tunnel junctions use spin-dependent tunneling. Parallel and antiparallel magnetic states can produce different resistance values, which is why TMR theory is relevant for a SpinVault-style storage and readout architecture.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Equations used</h2></div>
+            <p>The simulator uses the same transmission-summary variables shown in the deck, then expands them with standard quantum tunneling and spintronics formulas from published literature.</p>
+          </div>
+          <div class="equation-grid">
+            <article class="equation-card">
+              <h3>Finite barrier transmission</h3>
+              <div class="math-display">T(E) = [1 + V₀² sinh²(κd) / 4E(V₀ − E)]⁻¹</div>
+              <p>Used for the live electron-wave cell when E is below the barrier.</p>
+            </article>
+            <article class="equation-card">
+              <h3>TMR readout contrast</h3>
+              <div class="math-display">TMR = 2p₁p₂ / (1 − p₁p₂)</div>
+              <p>Julliere's model links spin polarization in two magnetic electrodes to magnetoresistive readout contrast.</p>
+            </article>
+            <article class="equation-card">
+              <h3>Thermal stability</h3>
+              <div class="math-display">Δ = Eᵣₑₜₑₙₜᵢₒₙ / kBT</div>
+              <p>Retention is modeled through an energy barrier relative to thermal energy. Higher Delta means a state is less likely to thermally flip or drift.</p>
+            </article>
+            <article class="equation-card">
+              <h3>WKB intuition</h3>
+              <div class="math-display">T ≈ exp[−2d√(2m(V₀ − E)) / ℏ]</div>
+              <p>The WKB form explains why the design is sensitive: nanometer-level changes in barrier width can shift transmission by orders of magnitude.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Technical theory</h2></div>
+            <p>The core concept is to treat memory retention as a controllable physical state, not only as a circuit-level error-correction problem.</p>
+          </div>
+          <div class="theory-canvas">
+            <div class="field-lines" aria-label="Conceptual magnetic field control diagram">
+              <span class="field-line"></span>
+              <span class="field-line"></span>
+              <span class="field-line"></span>
+              <span class="field-line"></span>
+              <span class="field-line"></span>
+              <div class="control-core">
+                <div>
+                  <strong>Controlled tunnel region</strong>
+                  <p>Field alignment, barrier geometry, and material behavior are modeled together.</p>
+                </div>
+              </div>
+            </div>
+            <div class="theory-notes">
+              <article class="note-card">
+                <small>01 · Boundary</small>
+                <h3>Magnetized tunnel membrane</h3>
+                <p>The membrane is framed as the physical boundary where electron movement becomes intentionally constrained. Instead of assuming leakage is just a downstream security issue, SpinVault starts at the material interface where leakage behavior begins.</p>
+              </article>
+              <article class="note-card">
+                <small>02 · Control</small>
+                <h3>Electron-flow guidance</h3>
+                <p>The simulation should explore how magnetic field strength and tunnel-barrier assumptions affect the probability of electrons moving through, remaining stable, or drifting under stress.</p>
+              </article>
+              <article class="note-card">
+                <small>03 · Reliability</small>
+                <h3>Retention as a state-quality problem</h3>
+                <p>Instead of presenting storage as only binary on/off behavior, SpinVault measures state quality: stability, leakage pressure, noise exposure, and expected attack surface.</p>
+              </article>
+              <article class="note-card">
+                <small>04 · Security</small>
+                <h3>Physics-assisted protection</h3>
+                <p>The security thesis is that a more controlled physical layer can reduce the usefulness of leakage-based attacks before software protections even begin.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Conceptual model</h2></div>
+            <p>The model is built around variables that an advisor can challenge: barrier height, electron energy, barrier width, spin polarization, temperature, and disorder.</p>
+          </div>
+          <div class="equation-grid">
+            <article class="equation-card">
+              <h3>Magnetic control</h3>
+              <div class="math-display">p₁, p₂ ↑ ⇒ TMR ↑</div>
+              <p>Better spin polarization improves readout contrast in the Julliere approximation, but the page avoids claiming infinite protection because real interfaces, disorder, and temperature reduce performance.</p>
+            </article>
+            <article class="equation-card">
+              <h3>Barrier behavior</h3>
+              <div class="math-display">d ↑ ⇒ T(d) ↓ exponentially</div>
+              <p>Tunneling probability is exponentially sensitive to barrier width. That makes barrier engineering powerful, but it also means fabrication variation matters a lot.</p>
+            </article>
+            <article class="equation-card">
+              <h3>Noise response</h3>
+              <div class="math-display">kBT ↑ ⇒ Δ = Eb / kBT ↓</div>
+              <p>Higher temperature raises thermal energy and weakens the retention margin. The simulator now exposes this instead of hiding it inside a generic noise slider.</p>
+            </article>
+            <article class="equation-card">
+              <h3>Storage quality</h3>
+              <div class="math-display">Mᵤₛₐᵦₗₑ ≈ Mᵣₑₜ + Cᵣ − Lₗₑₐₖ</div>
+              <p>The output is a concept-level engineering metric that combines the WKB transmission estimate, thermal stability, and TMR readout contrast.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Realistic one-cell architecture</h2></div>
+            <p>SpinVault should be presented as a magnetic tunnel junction style research cell, not as a generic “electron box.” The useful simplified cell is a pinned ferromagnetic reference layer, an ultra-thin insulating tunnel barrier, and a free magnetic layer whose state is read through resistance contrast.</p>
+          </div>
+          <div class="real-cell-layout">
+            <div class="real-cell-visual" aria-label="Realistic SpinVault one-cell stack">
+              <div class="cell-cap top">top contact / bit line</div>
+              <div class="real-layer pinned"><strong>Pinned FM reference</strong><span>fixed magnetization m1</span><i></i></div>
+              <div class="real-layer barrier"><strong>MgO or Al2O3 tunnel barrier</strong><span>1-3 nm insulating quantum barrier</span></div>
+              <div class="real-layer free"><strong>Free FM storage layer</strong><span>switchable magnetization m2</span><i></i></div>
+              <div class="cell-cap bottom">bottom contact / select path</div>
+              <div class="readout-trace"><span>low R: parallel</span><span>high R: antiparallel</span></div>
+            </div>
+            <div class="real-cell-notes">
+              <article><small>Physical abstraction</small><h3>What one cell represents</h3><p>The web model treats the cell as a ferromagnet-insulator-ferromagnet junction. The barrier controls quantum transmission, while the relative magnetic alignment controls readout resistance through spin-dependent tunneling.</p></article>
+              <article><small>What changes in the simulator</small><h3>From cartoon to model</h3><p>Barrier height, electron energy, barrier thickness, temperature, and spin polarization are now the visible model variables. The simulation should be read as a transparent first-principles approximation, not a fabricated measurement.</p></article>
+              <article><small>Future high-fidelity path</small><h3>What comes after this</h3><p>A later model should add bias-dependent Simmons tunneling, interface roughness, magnetic anisotropy, and LLGS magnetization dynamics for switching behavior.</p></article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Mathematical model and sensitivity graphs</h2></div>
+            <p>The goal is not to hide behind animations. These graphs show the relationships the simulator is using: exponential barrier sensitivity, TMR contrast, thermal stability, and the future LLGS switching model.</p>
+          </div>
+          <div class="math-graph-grid" data-reveal-group>
+            <article class="math-graph-card">
+              <div class="graph-head"><span>Transmission vs barrier width</span><strong>log scale</strong></div>
+              <svg viewBox="0 0 420 260" role="img" aria-label="Transmission decreases exponentially as barrier width increases">
+                <path class="grid" d="M48 28V222M118 28V222M188 28V222M258 28V222M328 28V222M398 28V222M48 222H398M48 174H398M48 126H398M48 78H398M48 30H398"/>
+                <path class="axis" d="M48 28V222H398"/>
+                <path class="curve blue" d="M54 52 C84 70 112 92 142 121 C178 154 214 181 252 198 C294 217 342 222 394 224"/>
+                <text x="58" y="42">T</text><text x="318" y="244">barrier width d</text>
+              </svg>
+              <code>T ≈ exp(-2κd), κ = sqrt(2m*(V0-E))/hbar</code>
+              <p>Small changes in tunnel barrier thickness can move leakage by orders of magnitude, which is why fabrication tolerance matters.</p>
+            </article>
+            <article class="math-graph-card">
+              <div class="graph-head"><span>TMR readout contrast</span><strong>Julliere</strong></div>
+              <svg viewBox="0 0 420 260" role="img" aria-label="TMR increases nonlinearly with spin polarization">
+                <path class="grid" d="M48 28V222M118 28V222M188 28V222M258 28V222M328 28V222M398 28V222M48 222H398M48 174H398M48 126H398M48 78H398M48 30H398"/>
+                <path class="axis" d="M48 28V222H398"/>
+                <path class="curve green" d="M54 214 C104 207 154 194 206 166 C260 136 308 92 360 38"/>
+                <text x="58" y="42">TMR</text><text x="330" y="244">p</text>
+              </svg>
+              <code>TMR = 2p1p2 / (1 - p1p2)</code>
+              <p>Higher polarization improves readout separation between parallel and antiparallel magnetic states, but real interfaces limit ideal performance.</p>
+            </article>
+            <article class="math-graph-card">
+              <div class="graph-head"><span>Thermal stability</span><strong>retention</strong></div>
+              <svg viewBox="0 0 420 260" role="img" aria-label="Thermal stability improves with retention energy and falls with temperature">
+                <path class="grid" d="M48 28V222M118 28V222M188 28V222M258 28V222M328 28V222M398 28V222M48 222H398M48 174H398M48 126H398M48 78H398M48 30H398"/>
+                <path class="axis" d="M48 28V222H398"/>
+                <path class="curve yellow" d="M54 204 C110 182 154 154 202 121 C260 82 316 58 394 42"/>
+                <path class="curve red" d="M54 78 C108 96 160 122 214 154 C276 190 334 210 394 218"/>
+                <text x="58" y="42">Δ</text><text x="300" y="244">E / T</text>
+              </svg>
+              <code>Δ = Eretention / kBT</code>
+              <p>Good retention requires the stored state energy barrier to remain large relative to thermal energy.</p>
+            </article>
+            <article class="math-graph-card">
+              <div class="graph-head"><span>Future switching model</span><strong>LLGS</strong></div>
+              <svg viewBox="0 0 420 260" role="img" aria-label="Magnetization vector precesses and damps toward a stable state">
+                <path class="grid" d="M48 28V222M118 28V222M188 28V222M258 28V222M328 28V222M398 28V222M48 222H398M48 174H398M48 126H398M48 78H398M48 30H398"/>
+                <path class="axis" d="M48 28V222H398"/>
+                <path class="curve violet" d="M58 128 C92 58 138 210 172 108 C210 18 252 194 288 118 C326 56 354 154 392 102"/>
+                <circle cx="322" cy="96" r="34" class="orbit-ring"/>
+                <text x="58" y="42">m(t)</text><text x="286" y="244">time</text>
+              </svg>
+              <code>dm/dt = -γm×Heff + αm×dm/dt + τSTT</code>
+              <p>The current page does not solve LLGS yet. It clearly marks this as the next step for realistic switching dynamics.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Device stack</h2></div>
+            <p>The technical story is strongest when SpinVault is described as a layered device architecture: substrate, access layer, controlled membrane, sensing logic, and validation output.</p>
+          </div>
+          <div class="device-layout">
+            <div class="device-diagram">
+              <div class="device-chip" aria-label="SpinVault conceptual device stack">
+                <div class="chip-layer"><strong>Readout</strong><span>Measures state quality and exposes whether the modeled bit remains stable.</span></div>
+                <div class="chip-layer"><strong>Access</strong><span>Connects the storage region to external control and measurement logic.</span></div>
+                <div class="chip-layer"><strong>Membrane</strong><span>Magnetically influenced tunnel region where electron behavior is constrained.</span></div>
+                <div class="chip-layer"><strong>Shield</strong><span>Reduces uncontrolled leakage paths and frames the security boundary.</span></div>
+                <div class="chip-layer"><strong>Substrate</strong><span>Process-compatible foundation for future physical prototyping.</span></div>
+              </div>
+            </div>
+            <div class="tech-copy">
+              <article>
+                <h3>Why layers matter</h3>
+                <p>A storage concept can sound abstract unless every claim is anchored to a physical layer. This stack explains where the field is applied, where electron movement is expected to change, and where measurement would happen in a prototype.</p>
+              </article>
+              <article>
+                <h3>What is being controlled</h3>
+                <p>SpinVault is not claiming that electrons stop moving entirely. The aim is to reduce uncontrolled movement enough that the stored state becomes more reliable, less leaky, and easier to defend against physical side-channel exposure.</p>
+              </article>
+              <article>
+                <h3>What must be proven next</h3>
+                <p>The simulation should identify whether realistic magnetic and material assumptions can produce a useful stability margin. If the model only works under impossible conditions, the team should know early and adjust the architecture.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Virtual cell model</h2></div>
+            <p>The cell is modeled as a ferromagnet / insulator / ferromagnet junction. The website shows both the physical stack and the simplified 1D quantum problem solved by the simulator.</p>
+          </div>
+          <div class="cell-model">
+            <div class="cell-stack" aria-label="Virtual SpinVault cell model">
+              <div class="cell-contact left"><strong>FM1</strong><span>spin-polarized source</span></div>
+              <div class="cell-barrier"><strong>Al2O3</strong><span>tunnel barrier</span></div>
+              <div class="cell-contact right"><strong>FM2</strong><span>magnetic analyzer</span></div>
+              <div class="cell-axis"><span>incident ψ</span><span>evanescent ψ</span><span>transmitted ψ</span></div>
+            </div>
+            <div class="tech-copy">
+              <article>
+                <h3>What the virtual cell solves</h3>
+                <p>The interactive model treats the membrane as a one-dimensional finite potential barrier. It calculates electron transmission from V0, E, and d, then applies spin polarization and thermal stability terms to estimate readout contrast and retention margin.</p>
+              </article>
+              <article>
+                <h3>What it does not claim</h3>
+                <p>This is not a full ab initio material solver, NEGF device simulation, or fabricated measurement. It is a physically disciplined web model that makes the assumptions visible and testable.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Cell states</h2></div>
+            <p>SpinVault's public model explains three useful states: aligned readout, opposing readout, and disturbed operation where leakage and thermal pressure become visible.</p>
+          </div>
+          <div class="state-grid">
+            <article class="state-card">
+              <div class="state-visual aligned">
+                <div class="state-layer pinned"><b></b><strong>pinned FM</strong><span>m1</span></div>
+                <div class="state-layer tunnel"><strong>MgO / Al2O3</strong><span>barrier</span></div>
+                <div class="state-layer free"><b></b><strong>free FM</strong><span>m2</span></div>
+                <em>parallel: lower resistance</em>
+              </div>
+              <h3>Parallel magnetic state</h3>
+              <p>When electrode polarization is aligned, the model predicts stronger spin-selective transmission and a lower resistance readout path.</p>
+            </article>
+            <article class="state-card">
+              <div class="state-visual antiparallel">
+                <div class="state-layer pinned"><b></b><strong>pinned FM</strong><span>m1</span></div>
+                <div class="state-layer tunnel"><strong>MgO / Al2O3</strong><span>barrier</span></div>
+                <div class="state-layer free"><b></b><strong>free FM</strong><span>m2</span></div>
+                <em>antiparallel: higher resistance</em>
+              </div>
+              <h3>Antiparallel magnetic state</h3>
+              <p>Opposing polarization reduces matching spin channels, increasing resistance and creating the readout contrast captured by the TMR term.</p>
+            </article>
+            <article class="state-card">
+              <div class="state-visual disturbed">
+                <div class="state-layer pinned"><b></b><strong>pinned FM</strong><span>m1 stable</span></div>
+                <div class="state-layer tunnel hot"><strong>heated barrier</strong><span>noise + disorder</span></div>
+                <div class="state-layer free"><b></b><strong>free FM</strong><span>m2 perturbed</span></div>
+                <em>thermal agitation reduces retention margin</em>
+              </div>
+              <h3>Disturbed / hot state</h3>
+              <p>Higher temperature, disorder, or attack disturbance does not change the finite-barrier equation directly, but it reduces the practical retention margin.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section dark-band" id="simulation">
+          <div class="section-head">
+            <div><h2>Simulation</h2></div>
+            <p>The large simulator below is the exact reference demo from the source HTML file, restyled so it sits cleanly inside the SpinVault page. It stays separate from the restored small simulations and the graph cards below.</p>
+          </div>
+          <div class="hero-actions">
+            <a class="btn primary" href="simulator.html">Open Twin simulator</a>
+            <a class="btn" href="digital-twin.html">Open comparison twin</a>
+          </div>
+          <div class="exact-simulation-shell">
+            <div class="exact-simulation-head">
+              <div>
+                <span>Reference simulator</span>
+                <strong>Wave view, particle view, and 0/1 controls</strong>
+              </div>
+              <p>The embedded app below is the exact simulation from <code>index 2.html</code>. It gives us the same physics-driven interaction and graphs the user asked for, while this page provides the SpinVault branding and supporting copy around it.</p>
+            </div>
+            <div class="exact-simulation-frame-wrap">
+              <iframe
+                class="exact-simulation-frame"
+                src="./index-2-reference.html?v=3#simulation"
+                title="SpinVault reference simulation"
+                loading="eager"
+                referrerpolicy="no-referrer"
+              ></iframe>
+            </div>
+          </div>
+        </section>
+
+<section class="section section-card source-graphs-v2" id="source-graphs" style="margin-top:0;">
+          <div class="section-head">
+            <div><h2>Mathematical representations</h2></div>
+            <p>These graph cards present the uploaded source-model plots as SpinVault-aligned mathematical representations. They are shown separately from the simulation blocks above.</p>
+          </div>
+
+          <div class="source-graph-v2-grid" data-reveal-group>
+            <article class="source-graph-v2-card">
+              <div class="source-graph-v2-copy">
+                <span class="source-graph-v2-tag">Transmission model</span>
+                <h3>Transmission probability vs. electron energy</h3>
+                <p>
+                  Spin-up and spin-down channels separate because their effective barrier heights differ.
+                  The y-axis is logarithmic, so small energy shifts become order-of-magnitude tunneling changes.
+                </p>
+              </div>
+              <div class="source-graph-v2-stage" data-reskin-stage>
+                <div class="source-graph-v2-canvas" data-reskin-graph="transmission-energy" aria-label="Transmission probability versus electron energy" role="img"></div>
+                <div class="source-graph-v2-tooltip" data-reskin-tooltip hidden></div>
+              </div>
+            </article>
+
+            <article class="source-graph-v2-card">
+              <div class="source-graph-v2-copy">
+                <span class="source-graph-v2-tag">Wavefunction density</span>
+                <h3>Electron wavefunction probability density</h3>
+                <p>
+                  The shaded barrier region keeps the same mathematical structure as the source file while the
+                  canvas styling follows the dark, gridded SpinVault visual system.
+                </p>
+              </div>
+              <div class="source-graph-v2-stage" data-reskin-stage>
+                <div class="source-graph-v2-canvas" data-reskin-graph="wave-density" aria-label="Electron wavefunction probability density across the barrier" role="img"></div>
+                <div class="source-graph-v2-tooltip" data-reskin-tooltip hidden></div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Model validation</h2></div>
+            <p>Every visual claim is checked against the math it represents. This keeps the simulator persuasive without overstating what a browser model can prove.</p>
+          </div>
+          <div class="validation-grid">
+            <article class="validation-card"><small>Quantum barrier</small><h3>Is this accurate?</h3><p>Yes for a simplified 1D rectangular barrier. The transmitted wave amplitude scales with sqrt(T), reflected amplitude scales with sqrt(1 - T), and the barrier region becomes evanescent when E &lt; V0.</p></article>
+            <article class="validation-card"><small>Spin readout</small><h3>Is this accurate?</h3><p>Yes as a first-order Julliere MTJ readout model. It assumes elastic spin-conserving tunneling and uniform electrode polarization, which is why the page labels it as a concept model.</p></article>
+            <article class="validation-card"><small>Retention</small><h3>Is this accurate?</h3><p>Yes as an engineering indicator. Delta = Eb/kBT is a standard thermal-stability ratio, but the exact retention time requires material-specific attempt frequency and anisotropy data.</p></article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Scientific grounding</h2></div>
+            <p>The web simulator is intentionally a reduced model. It uses reputable foundations and labels what belongs to future high-fidelity simulation.</p>
+          </div>
+          <div class="source-grid">
+            <article><small>Quantum transport</small><h3>Finite barrier + WKB/Simmons intuition</h3><p>The live chart solves a one-dimensional finite rectangular barrier and reports κ. The RA proxy follows the core tunneling idea that resistance grows rapidly as transmission falls. A production-grade model should add Simmons bias dependence and material-specific effective mass.</p></article>
+            <article><small>Spintronics readout</small><h3>Julliere TMR approximation</h3><p>The TMR readout is computed from spin polarization using the standard Julliere form. This is appropriate for first-order public explanation, while real MTJs require interface quality, spin filtering, bias, and temperature corrections.</p></article>
+            <article><small>Thermal retention</small><h3>Delta = Eb / kBT</h3><p>The retention score is tied to thermal stability rather than a generic “security” number. The page avoids claiming retention time because that needs magnetic anisotropy, volume, damping, and attempt-frequency data.</p></article>
+            <article><small>Future dynamics</small><h3>LLGS / STT path</h3><p>Switching is not fully solved in this browser model. The next credible simulation step is LLGS with spin-transfer torque, damping, anisotropy, and field terms.</p></article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Signal flow</h2></div>
+            <p>The simulation should show the full chain from design inputs to evidence outputs, so reviewers can see exactly how a technical assumption becomes a claim.</p>
+          </div>
+          <div class="signal-layout">
+            <div class="signal-diagram" aria-label="Simulation signal flow diagram">
+              <div class="signal-node"><small>Input</small><span>Field strength, barrier thickness, orientation, thermal stress, disturbance noise.</span></div>
+              <div class="signal-node"><small>Model</small><span>Electron transition probability, drift pressure, leakage pathway estimate, state retention score.</span></div>
+              <div class="signal-node"><small>Compare</small><span>Controlled membrane result versus passive reference model under identical stress conditions.</span></div>
+              <div class="signal-node"><small>Output</small><span>Stability margin, leakage reduction estimate, attack exposure score, recommended test window.</span></div>
+            </div>
+            <div class="model-plot" aria-label="Conceptual stability and leakage plot">
+              <span class="plot-line stability"></span>
+              <span class="plot-line leakage"></span>
+              <span class="plot-label one">Higher field control should increase modeled stability until saturation.</span>
+              <span class="plot-label two">Leakage pressure should fall when the membrane assumptions are effective.</span>
+              <span class="plot-label three">The useful zone is where stability rises without impossible fabrication demands.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Simulation architecture</h2></div>
+            <p>The first version should be simple enough to build, but rigorous enough to support investor, advisor, and patent conversations.</p>
+          </div>
+          <div class="test-grid">
+            <article class="test-card">
+              <h3>Input layer</h3>
+              <ul>
+                <li>Magnetic field strength and orientation as adjustable control variables.</li>
+                <li>Tunnel-barrier thickness and material assumptions as fabrication variables.</li>
+                <li>Thermal noise, process variation, and disturbance signals as stress variables.</li>
+              </ul>
+            </article>
+            <article class="test-card">
+              <h3>Physics layer</h3>
+              <ul>
+                <li>Approximate electron movement probability across the modeled membrane.</li>
+                <li>Translate field and barrier changes into stability and leakage pressure estimates.</li>
+                <li>Track where behavior becomes unstable instead of hiding weak results.</li>
+              </ul>
+            </article>
+            <article class="test-card">
+              <h3>Security layer</h3>
+              <ul>
+                <li>Compare passive leakage exposure against the controlled SpinVault model.</li>
+                <li>Show whether attack visibility decreases when the storage state is more physically constrained.</li>
+                <li>Separate demonstrated results from future claims so the website stays credible.</li>
+              </ul>
+            </article>
+            <article class="test-card">
+              <h3>Output layer</h3>
+              <ul>
+                <li>Modeled stability score, leakage pressure score, and attack exposure score.</li>
+                <li>Parameter sweeps that reveal the strongest design window.</li>
+                <li>Exportable graphs for the pitch deck, patent appendix, and lab roadmap.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-card" id="orchestration">
+          <div class="section-head">
+            <div><h2>Future orchestration layer</h2></div>
+            <p>The ideal SpinVault platform is not only a website with sliders. It becomes a controlled simulation system where fast approximations answer instantly, expensive physics solvers validate serious cases, and every run produces traceable evidence.</p>
+          </div>
+          <div class="orchestration-board" aria-label="SpinVault future simulation orchestration architecture">
+            <div class="orch-column">
+              <article class="orch-card client">
+                <small>01 Client / presentation</small>
+                <h3>Interactive web app</h3>
+                <p>Browser interface for parameter changes, visual cell rendering, graphs, and reviewer-friendly model explanations.</p>
+                <span>Next.js or static prototype now; 3D/WebGL later</span>
+              </article>
+              <article class="orch-card gateway">
+                <small>02 API gateway</small>
+                <h3>Orchestration layer</h3>
+                <p>Receives parameter requests, validates inputs, decides whether to run a fast surrogate or queue heavy validation, logs metadata, and returns reproducible results.</p>
+                <span>FastAPI / Python controller</span>
+              </article>
+            </div>
+            <div class="orch-flow">
+              <div class="orch-line"></div>
+              <span>real-time request</span>
+              <span>validation request</span>
+              <span>checkpoint + archive</span>
+            </div>
+            <div class="orch-column middle">
+              <article class="orch-card surrogate">
+                <small>03 Fast path</small>
+                <h3>AI surrogate model</h3>
+                <p>Near-instant predictions for slider interaction: retention margin, leakage pressure, TMR contrast, and recommended design windows.</p>
+                <span>Physics-informed regression / neural surrogate</span>
+              </article>
+              <article class="orch-card compute">
+                <small>04 Validation path</small>
+                <h3>Distributed physics compute</h3>
+                <p>Runs slower but more rigorous simulations for high-value parameter sets: micromagnetic switching, tunneling transport, thermal stress, and sensitivity sweeps.</p>
+                <span>Ray cluster, CUDA engines, queue workers</span>
+              </article>
+              <article class="orch-card engines">
+                <small>05 Solver engines</small>
+                <h3>Specialized physics modules</h3>
+                <p>Separate model engines keep assumptions inspectable: finite-barrier transport, future Simmons/NEGF correction, LLGS switching, and experiment-calibrated retention.</p>
+                <span>MuMax3 / custom Python / future quantum route</span>
+              </article>
+            </div>
+            <div class="orch-column">
+              <article class="orch-card storage">
+                <small>06 Data layer</small>
+                <h3>Experiment metadata database</h3>
+                <p>Stores parameter sets, model version, assumptions, results, reviewer notes, and links to generated graphs.</p>
+                <span>Postgres metadata + object storage archives</span>
+              </article>
+              <article class="orch-card governance">
+                <small>07 Governance</small>
+                <h3>Budget and evidence control</h3>
+                <p>Prevents runaway compute, flags abnormal spend, tracks which claims have evidence, and separates public demos from validation runs.</p>
+                <span>Budget ceiling, spend alerts, reproducibility log</span>
+              </article>
+            </div>
+          </div>
+          <div class="system-parts-grid" data-reveal-group aria-label="Buildable system parts">
+            <article><small>Built in repo</small><h3>Gateway</h3><p>Local FastAPI service accepts parameter snapshots, returns prediction metrics, and exposes validation-job endpoints.</p><code>orchestration/app/main.py</code></article>
+            <article><small>Built in repo</small><h3>Surrogate model</h3><p>The current fast path uses finite-barrier and spin-polarization equations so website sliders connect to computed values.</p><code>orchestration/app/physics.py</code></article>
+            <article><small>Built in repo</small><h3>Metadata store</h3><p>Simulation runs and queued jobs can be stored locally, creating the first evidence trail for later review.</p><code>orchestration/app/storage.py</code></article>
+            <article><small>Organized now</small><h3>Platform folders</h3><p>The codebase now separates client, gateway, surrogate, validation, storage, governance, and future quantum route.</p><code>platform/</code></article>
+          </div>
+          <div class="orchestration-readiness">
+            <article><strong>Build now</strong><p>A lightweight browser simulator plus a simple API schema for parameter logging and future solver integration.</p></article>
+            <article><strong>Build next</strong><p>FastAPI orchestration, stored experiment records, graph export, and a queue for high-fidelity validation jobs.</p></article>
+            <article><strong>Build later</strong><p>GPU-backed micromagnetic/transport solvers, surrogate training, secure pre-signed result access, and quantum-hardware experiments only if justified.</p></article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Technical assumptions</h2></div>
+            <p>A serious technical page should make its assumptions visible. These are the assumptions SpinVault should document before anyone treats the simulation as evidence.</p>
+          </div>
+          <div class="grid-3">
+            <article class="feature">
+              <h3>Material realism</h3>
+              <p>The model should avoid magical materials. It should begin with plausible magnetic and insulating behavior, then clearly label anything speculative so advisors can challenge it.</p>
+            </article>
+            <article class="feature">
+              <h3>Switching feasibility</h3>
+              <p>Retention is only useful if the state can still be written and read. The simulation should track whether stronger control creates an unusable barrier for practical operation.</p>
+            </article>
+            <article class="feature">
+              <h3>Thermal tolerance</h3>
+              <p>Any future prototype will face temperature and process variation. The model should test stress scenarios instead of relying on idealized, room-temperature-only behavior.</p>
+            </article>
+            <article class="feature">
+              <h3>Leakage definition</h3>
+              <p>The team should define leakage consistently: physical state drift, measurable side-channel exposure, or lost data retention. Each version needs a different test.</p>
+            </article>
+            <article class="feature">
+              <h3>Comparison baseline</h3>
+              <p>Every strong claim needs a reference. SpinVault should compare against a passive model so improvement is measured as a delta, not just shown as an isolated animation.</p>
+            </article>
+            <article class="feature">
+              <h3>Evidence standard</h3>
+              <p>Early evidence can be simulation-based, but the roadmap should graduate toward expert review, repeatable plots, material consultation, and eventually lab characterization.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Simulation objectives</h2></div>
+            <p>The model should not be a generic animation. It should answer specific technical questions that matter for proof-of-concept planning.</p>
+          </div>
+          <div class="readiness-board">
+            <div class="board-row"><strong>Electron-flow stability</strong><span>Show whether magnetic control produces reliable behavior under defined assumptions.</span><span class="tag">Core</span></div>
+            <div class="board-row"><strong>Leakage behavior</strong><span>Compare expected leakage pressure against a traditional passive model.</span><span class="tag">Core</span></div>
+            <div class="board-row"><strong>Barrier sensitivity</strong><span>Stress test thickness, field strength, and material assumptions.</span><span class="tag">Model</span></div>
+            <div class="board-row"><strong>Security implication</strong><span>Frame why controlled behavior could make physical attacks less practical.</span><span class="tag">Claim</span></div>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Validation experiments</h2></div>
+            <p>Each experiment below turns the idea into a testable claim. This makes the technology page more useful than a concept description alone.</p>
+          </div>
+          <div class="test-grid">
+            <article class="test-card">
+              <h3>1. Baseline comparison</h3>
+              <ul>
+                <li>Run a passive storage model and a controlled SpinVault model under the same noise conditions.</li>
+                <li>Measure relative stability, leakage pressure, and disturbance sensitivity.</li>
+                <li>Use the result to decide whether the concept deserves deeper prototype work.</li>
+              </ul>
+            </article>
+            <article class="test-card">
+              <h3>2. Parameter sweep</h3>
+              <ul>
+                <li>Vary magnetic field strength, barrier thickness, and temperature-like stress inputs.</li>
+                <li>Visualize the safe operating window instead of showing only one perfect scenario.</li>
+                <li>Identify which variable has the strongest effect on usable storage margin.</li>
+              </ul>
+            </article>
+            <article class="test-card">
+              <h3>3. Failure boundary</h3>
+              <ul>
+                <li>Push the model until leakage or drift becomes unacceptable.</li>
+                <li>Show what breaks first: field control, membrane assumptions, or noise tolerance.</li>
+                <li>Turn weak points into a concrete lab-testing plan.</li>
+              </ul>
+            </article>
+            <article class="test-card">
+              <h3>4. Reviewer package</h3>
+              <ul>
+                <li>Produce charts and assumptions that advisors can inspect without needing the full codebase.</li>
+                <li>Separate conceptual physics, simulation assumptions, and business claims.</li>
+                <li>Build a technical appendix suitable for e2vc, patent conversations, and manufacturer outreach.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Problem / solution</h2></div>
+            <p>Traditional systems leak information. SpinVault focuses on stable, controlled behavior.</p>
+          </div>
+          <div class="grid-3">
+            <article class="feature"><h3>Traditional model</h3><p>Leaks data over time and needs energy-inefficient compensation to maintain security.</p></article>
+            <article class="feature"><h3>Core problems</h3><p>Energy inefficiency, information leakage, and scaling bottlenecks create pressure on future memory systems.</p></article>
+            <article class="feature"><h3>SpinVault solution</h3><p>Active electron-flow control targets secure architecture and reliable data behavior.</p></article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Validation map</h2></div>
+            <p>Every technical claim should connect to a test, a reviewer, or a future lab milestone.</p>
+          </div>
+          <div class="technical-map">
+            <div class="map-row"><strong>Mechanism</strong><span>Magnetized tunnel membrane controls electron behavior.</span><span>Simulation + expert review</span></div>
+            <div class="map-row"><strong>Reliability</strong><span>Reduced information leakage and stronger retention behavior.</span><span>Simulation comparison</span></div>
+            <div class="map-row"><strong>Manufacturability</strong><span>Uses proven material references and process-compatible framing.</span><span>Lab consultation</span></div>
+            <div class="map-row"><strong>Commercial path</strong><span>Patent, licensing, mass-producer conversations, and production planning.</span><span>Advisor support</span></div>
+          </div>
+        </section>
+
+        <section class="section section-card" id="modules">
+          <div class="section-head">
+            <div><h2>Modules</h2></div>
+            <p>SpinVault can be presented as a stack of technical modules instead of one flat idea.</p>
+          </div>
+          <div class="grid-4">
+            <article class="module"><h3>Core storage</h3><p>Magnetic electron control model.</p></article>
+            <article class="module"><h3>Simulation</h3><p>Validation environment.</p></article>
+            <article class="module"><h3>Lab testing</h3><p>Physical proof-of-concept stage.</p></article>
+            <article class="module"><h3>IP strategy</h3><p>Patent and licensing path.</p></article>
+          </div>
+        </section>
+
+        <section class="section section-card">
+          <div class="section-head">
+            <div><h2>Research basis</h2></div>
+            <p>These references shape the public-facing technical framing. The website does not claim lab validation yet; it presents a research-backed simulation roadmap.</p>
+          </div>
+          <div class="grid-3">
+            <article class="feature"><h3>Magnetic tunnel junctions</h3><p>MTJs use two magnetic electrodes separated by an insulating tunnel barrier. Parallel and antiparallel magnetic alignment create different resistance states for readout.</p></article>
+            <article class="feature"><h3>Tunneling magnetoresistance</h3><p>Julliere's TMR formula connects spin polarization to readout contrast. The simulator uses this as a first-order public model, not as a complete device solver.</p></article>
+            <article class="feature"><h3>Barrier transmission</h3><p>WKB/Simmons-style tunneling models explain why barrier width and barrier height dominate leakage: transmission falls exponentially with barrier thickness.</p></article>
+          </div>
+          <div class="pill-row">
+            <a class="pill" href="https://www.nature.com/articles/s44306-024-00014-7">npj Spintronics review</a>
+            <a class="pill" href="https://www.nature.com/articles/s44287-024-00111-z">STT-MRAM review</a>
+            <a class="pill" href="https://tsymbal.unl.edu/tunneling-magnetoresistance/">TMR overview</a>
+          </div>
+        </section>
+        
+</main>
+      <footer class="footer"><span>SpinVault · Secure storage research</span><span class="footer-links"><a href="privacy.html">Privacy</a><a href="cookies.html">Cookie settings</a></span></footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "spinvault-website",
+  "private": true,
+  "type": "module",
+  "description": "Static SpinVault website plus the Twin simulator UI shell. No physics solvers are bundled here.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p js/simulator/tsconfig.json",
+    "lint": "node js/simulator/scripts/lint.mjs",
+    "test": "node --test js/simulator/tests/*.test.js",
+    "build": "node js/simulator/scripts/verify-static.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

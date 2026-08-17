@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OVF scientific map smoke</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #060d15;
+      }
+      svg {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <svg role="img"></svg>
+    <script type="module">
+      import { renderOvfFrameViewport } from "../components/viewport.js";
+
+      const nx = 8;
+      const ny = 4;
+      /** @type {import("../lib/types").OvfFrameData["vectors"]} */
+      const vectors = [];
+      let index = 0;
+      for (let y = 0; y < ny; y += 1) {
+        for (let x = 0; x < nx; x += 1) {
+          const mz = x < nx / 2 ? -0.95 : 0.85;
+          vectors.push({
+            index: index++,
+            x,
+            y,
+            z: 0,
+            mx: 0.2,
+            my: y % 2 ? 0.1 : -0.1,
+            mz,
+            magnitude: 1
+          });
+        }
+      }
+
+      renderOvfFrameViewport(document.querySelector("svg"), {
+        path: "outputs/m000042.ovf",
+        label: "m000042.ovf",
+        index: 42,
+        bytes: 4096,
+        format: "ovf",
+        metadata: {
+          xnodes: nx,
+          ynodes: ny,
+          znodes: 1,
+          xstepsize: 1.25e-9,
+          ystepsize: 1.25e-9
+        },
+        warnings: [],
+        vectors
+      }, {
+        meanMx: 0.1,
+        meanMy: 0,
+        meanMz: -0.05,
+        maxFrameDelta: 1.2e-2,
+        staticAtPrecision: false,
+        timeLabel: "t = 0.84 ns",
+        switchingOccurred: "no",
+        finalAlignmentState: "intermediate",
+        switchingThreshold: 0.8,
+        geometry: {
+          cellShape: "ellipse",
+          freeLayerLength: { value: 80, unit: "nm" },
+          freeLayerWidth: { value: 40, unit: "nm" },
+          freeLayerThickness: { value: 1.2, unit: "nm" },
+          barrierThickness: { value: 1, unit: "nm" },
+          referenceLayerThickness: { value: 2.4, unit: "nm" }
+        }
+      });
+    </script>
+  </body>
+</html>

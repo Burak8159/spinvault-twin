@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SpinVault Twin | Simulator</title>
+    <meta name="description" content="SpinVault Twin engineering workspace. Demo fixtures locally; MuMax3/Kwant/surrogate submit to the API and stay not_configured until wired." />
+    <link rel="stylesheet" href="styles.css?v=spinvault-twin-49-20260817" />
+    <link rel="stylesheet" href="simulator.css?v=spinvault-twin-49-20260817" />
+    <script>
+      (() => {
+        const fallbackApiUrl = "http://localhost:8001";
+        let configuredApiUrl = "";
+        try {
+          configuredApiUrl = new URLSearchParams(window.location.search).get("api") || "";
+        } catch {
+          configuredApiUrl = "";
+        }
+        try {
+          configuredApiUrl = configuredApiUrl || window.localStorage.getItem("spinvault-api-url") || "";
+        } catch {
+          configuredApiUrl = configuredApiUrl || "";
+        }
+        window.SPINVAULT_API_URL = (configuredApiUrl || window.SPINVAULT_API_URL || fallbackApiUrl).replace(/\/$/, "");
+      })();
+    </script>
+    <script defer src="script.js?v=spinvault-twin-49-20260817"></script>
+    <script type="module" src="js/simulator/main.js?v=spinvault-twin-49-20260817"></script>
+  </head>
+  <body class="simulator-app">
+    <a class="sv-skip" href="#sv-workspace">Skip to simulator workspace</a>
+    <div class="sv-shell" id="sv-workspace" data-mobile-panel="device">
+      <header class="sv-topbar">
+        <div class="sv-brand-block">
+          <a class="brand" href="index.html">
+            <svg class="brand-mark" aria-hidden="true" viewBox="0 0 80 80" role="img">
+              <g fill="currentColor">
+                <path d="M40 4L52 20H45V28H35V20H28Z" />
+                <circle cx="40" cy="40" r="16" />
+                <rect x="31" y="37" width="18" height="6" rx="3" fill="var(--bg)" />
+                <path d="M40 76L28 60H35V52H45V60H52Z" />
+              </g>
+            </svg>
+            <span>SpinVault Twin</span>
+          </a>
+          <p class="sv-honesty-banner" id="sv-honesty-banner" title="MuMax3 computes free-layer micromagnetics only. MgO/reference are context. Quantum Wave is an analytical proxy until Kwant is connected.">MuMax3 free-layer · OVF when frames exist</p>
+        </div>
+
+        <label class="sv-scenario-select">
+          <span>Scenario</span>
+          <select id="sv-scenario" aria-label="Scenario preset"></select>
+        </label>
+
+        <div class="sv-status" id="sv-status-label" data-status="idle" aria-live="polite">
+          <span class="sv-status-dot" aria-hidden="true"></span>
+          <span>Idle</span>
+        </div>
+
+        <div class="sv-top-actions">
+          <button class="sv-icon-btn" id="sv-save" type="button" title="Save scenario locally" aria-label="Save scenario locally">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 3h11l5 5v13H5zm2 2v14h12V9.8L14.2 5zm2 10h8v2H9z"/></svg>
+          </button>
+          <button class="sv-icon-btn" id="sv-export" type="button" title="Export workspace JSON" aria-label="Export workspace JSON">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3l4 4h-3v6h-2V7H8zm-7 12h14v6H5zm2 2v2h10v-2z"/></svg>
+          </button>
+          <button class="sv-icon-btn" id="sv-reset" type="button" title="Reset workspace" aria-label="Reset workspace">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 6V3L8 7l4 4V8a4 4 0 1 1-4 4H6a6 6 0 1 0 6-6z"/></svg>
+          </button>
+          <button class="sv-icon-btn" id="sv-settings-open" type="button" title="Settings" aria-label="Open settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 3h4l.5 2.2a7 7 0 0 1 1.6.9L18.8 5l2.2 3.8-1.8 1.4a7 7 0 0 1 0 1.6l1.8 1.4L18.8 19l-2.7-1.1a7 7 0 0 1-1.6.9L14 21h-4l-.5-2.2a7 7 0 0 1-1.6-.9L5.2 19 3 15.2l1.8-1.4a7 7 0 0 1 0-1.6L3 10.8 5.2 7l2.7 1.1a7 7 0 0 1 1.6-.9zm2 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+          </button>
+          <a class="sv-text-link" href="index.html">Site</a>
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle light mode" aria-pressed="false"><span class="toggle-icon toggle-moon">☾</span><span class="toggle-knob"></span><span class="toggle-icon toggle-sun">☀</span></button>
+        </div>
+      </header>
+
+      <nav class="sv-mobile-tabs" aria-label="Workspace panels">
+        <button type="button" data-mobile-panel="setup" aria-selected="false">Setup</button>
+        <button type="button" class="is-active" data-mobile-panel="device" aria-selected="true">Device</button>
+        <button type="button" data-mobile-panel="results" aria-selected="false">Results</button>
+        <button type="button" data-mobile-panel="logs" aria-selected="false">Logs</button>
+      </nav>
+
+      <div class="sv-body">
+        <aside class="sv-setup" id="sv-setup" aria-label="Device setup">
+          <div class="sv-panel-head">
+            <h1>PMTJ free layer</h1>
+          </div>
+
+          <section class="sv-twin-panel" aria-label="Cell twin controls">
+            <div id="sv-twin-controls"></div>
+          </section>
+
+          <details class="sv-advanced-parameters">
+            <summary>Advanced physical parameters</summary>
+          <div class="sv-field" data-field="title">
+            <label for="sv-title">Scenario title</label>
+            <input id="sv-title" type="text" autocomplete="off" aria-describedby="sv-title-error" />
+            <p class="sv-field-error" id="sv-title-error" hidden></p>
+          </div>
+
+          <div class="sv-field" data-field="solverTarget">
+            <label for="sv-solver">Solver target</label>
+            <select id="sv-solver" aria-describedby="sv-solver-note sv-solver-error"></select>
+            <p class="sv-hint" id="sv-solver-note">Local UI fixture runner. Not a physical solver.</p>
+            <p class="sv-field-error" id="sv-solver-error" hidden></p>
+          </div>
+
+          <fieldset>
+            <legend>Simulation mode</legend>
+            <div class="sv-segmented" id="sv-mode" role="group" aria-label="Simulation mode">
+              <button type="button" class="is-active" data-mode="static" aria-pressed="true">Static</button>
+              <button type="button" data-mode="time_domain" aria-pressed="false">Time</button>
+              <button type="button" data-mode="sweep" aria-pressed="false">Sweep</button>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Geometry</legend>
+            <div class="sv-field" data-field="geometry.cellShape">
+              <label for="sv-shape">Cell shape</label>
+              <select id="sv-shape">
+                <option value="ellipse">Ellipse</option>
+                <option value="rectangle">Rectangle</option>
+                <option value="nanowire">Nanowire / track</option>
+                <option value="custom">Custom</option>
+              </select>
+              <p class="sv-hint">Schematic footprint used by the demo viewport; intended for both future solver request shapes.</p>
+            </div>
+            <div class="sv-field" data-field="geometry.freeLayerThickness">
+              <label for="sv-free-thickness">Free layer thickness</label>
+              <div class="sv-qty">
+                <input id="sv-free-thickness" type="number" min="0" step="0.1" inputmode="decimal" aria-describedby="sv-free-thickness-error" />
+                <select id="sv-free-thickness-unit" aria-label="Free layer thickness unit"></select>
+              </div>
+              <p class="sv-hint">Expected length unit. Used by the viewport and future MuMax3 request shape.</p>
+              <p class="sv-field-error" id="sv-free-thickness-error" hidden></p>
+            </div>
+            <div class="sv-field" data-field="geometry.freeLayerLength">
+              <label for="sv-free-length">Free layer length</label>
+              <div class="sv-qty">
+                <input id="sv-free-length" type="number" min="0" step="1" inputmode="decimal" aria-describedby="sv-free-length-error" />
+                <select id="sv-free-length-unit" aria-label="Free layer length unit"></select>
+              </div>
+              <p class="sv-hint">Expected length unit. Used by the viewport and future solver request shape.</p>
+              <p class="sv-field-error" id="sv-free-length-error" hidden></p>
+            </div>
+            <div class="sv-field" data-field="geometry.freeLayerWidth">
+              <label for="sv-free-width">Free layer width</label>
+              <div class="sv-qty">
+                <input id="sv-free-width" type="number" min="0" step="1" inputmode="decimal" aria-describedby="sv-free-width-error" />
+                <select id="sv-free-width-unit" aria-label="Free layer width unit"></select>
+              </div>
+              <p class="sv-hint">Expected length unit. Used by the viewport and future solver request shape.</p>
+              <p class="sv-field-error" id="sv-free-width-error" hidden></p>
+            </div>
+            <div class="sv-field" data-field="geometry.barrierThickness">
+              <label for="sv-barrier-thickness">Barrier thickness</label>
+              <div class="sv-qty">
+                <input id="sv-barrier-thickness" type="number" min="0" step="0.1" inputmode="decimal" aria-describedby="sv-barrier-thickness-error" />
+                <select id="sv-barrier-thickness-unit" aria-label="Barrier thickness unit"></select>
+              </div>
+              <p class="sv-hint">Expected length unit. Used by the viewport; future Kwant transport draft remains separate.</p>
+              <p class="sv-field-error" id="sv-barrier-thickness-error" hidden></p>
+            </div>
+            <div class="sv-field" data-field="geometry.referenceLayerThickness">
+              <label for="sv-reference-thickness">Reference layer thickness</label>
+              <div class="sv-qty">
+                <input id="sv-reference-thickness" type="number" min="0" step="0.1" inputmode="decimal" aria-describedby="sv-reference-thickness-error" />
+                <select id="sv-reference-thickness-unit" aria-label="Reference layer thickness unit"></select>
+              </div>
+              <p class="sv-hint">Expected length unit. Used by the viewport and future MuMax3 request shape.</p>
+              <p class="sv-field-error" id="sv-reference-thickness-error" hidden></p>
+            </div>
+          </fieldset>
+
+          <fieldset data-field="materials">
+            <legend>Materials <span class="sv-pill">not verified</span></legend>
+            <div class="sv-field">
+              <label for="sv-material-free">Magnetic / free layer</label>
+              <select id="sv-material-free"></select>
+            </div>
+            <div class="sv-field">
+              <label for="sv-material-reference">Reference layer</label>
+              <select id="sv-material-reference"></select>
+            </div>
+            <div class="sv-field">
+              <label for="sv-material-barrier">Barrier / spacer</label>
+              <select id="sv-material-barrier"></select>
+            </div>
+            <p class="sv-field-error" id="sv-materials-error" hidden></p>
+            <p class="sv-hint">Presets are labels for the schematic. They are not verified material cards.</p>
+            <div class="sv-data-readout" id="sv-material-details" aria-live="polite"></div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Excitation / current</legend>
+            <div class="sv-field">
+              <label for="sv-torque-mechanism">Torque mechanism</label>
+              <select id="sv-torque-mechanism" title="Draft STT/SOT request metadata. The demo fixture does not solve torque dynamics.">
+                <option value="none">None</option>
+                <option value="stt">Spin-transfer torque (STT)</option>
+                <option value="sot">Spin-orbit torque (SOT)</option>
+                <option value="combined">Combined draft</option>
+              </select>
+              <p class="sv-hint">Future MuMax3 request metadata only; not used in the demo solve loop.</p>
+            </div>
+            <label class="sv-toggle">
+              <input id="sv-torque-enabled" type="checkbox" />
+              <span>Enable torque draft</span>
+            </label>
+            <div class="sv-field" data-field="torque.currentDensity">
+              <label for="sv-current-density">Current density</label>
+              <div class="sv-qty">
+                <input id="sv-current-density" type="number" step="1000000000" inputmode="decimal" title="Draft current density for future torque request generation." />
+                <select id="sv-current-density-unit" aria-label="Current density unit"></select>
+              </div>
+              <p class="sv-hint">A/m² · MuMax3 torque draft · ignored by demo fixture.</p>
+              <p class="sv-field-error" hidden></p>
+            </div>
+            <div class="sv-field" data-field="torque.polarization">
+              <label for="sv-torque-polarization">Polarization</label>
+              <div class="sv-qty">
+                <input id="sv-torque-polarization" type="number" step="0.01" inputmode="decimal" title="Dimensionless draft polarization; requires review." />
+                <select id="sv-torque-polarization-unit" aria-label="Torque polarization unit"></select>
+              </div>
+              <p class="sv-hint">Dimensionless · MuMax3 torque draft · ignored by demo fixture.</p>
+              <p class="sv-field-error" hidden></p>
+            </div>
+            <div class="sv-vector-grid" aria-label="External field vector">
+              <span>External field (T)</span>
+              <label>X<input id="sv-field-x" type="number" step="0.001" aria-label="External field X in tesla" title="External field x component in tesla; future MuMax3 draft." /></label>
+              <label>Y<input id="sv-field-y" type="number" step="0.001" aria-label="External field Y in tesla" title="External field y component in tesla; future MuMax3 draft." /></label>
+              <label>Z<input id="sv-field-z" type="number" step="0.001" aria-label="External field Z in tesla" title="External field z component in tesla; future MuMax3 draft." /></label>
+            </div>
+            <p class="sv-hint">Vector field for future MuMax3 request generation. The browser does not compute field response.</p>
+            <div class="sv-field">
+              <label for="sv-current-direction">Current direction</label>
+              <select id="sv-current-direction">
+                <option value="positive_z">+z</option>
+                <option value="negative_z">−z</option>
+              </select>
+              <p class="sv-hint">Used only for the viewport arrow and demo fixture label.</p>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Initial conditions</legend>
+            <div class="sv-field">
+              <label for="sv-initial-mode">Magnetization mode</label>
+              <select id="sv-initial-mode" title="Initial magnetization draft for a future MuMax3 request.">
+                <option value="uniform">Uniform</option>
+                <option value="random">Random</option>
+                <option value="region_based">Region based</option>
+                <option value="import_pending">Import pending</option>
+              </select>
+            </div>
+            <div class="sv-vector-grid" data-field="initialMagnetization.vector">
+              <span>Direction vector</span>
+              <label>X<input id="sv-initial-x" type="number" step="0.01" /></label>
+              <label>Y<input id="sv-initial-y" type="number" step="0.01" /></label>
+              <label>Z<input id="sv-initial-z" type="number" step="0.01" /></label>
+              <p class="sv-field-error" hidden></p>
+            </div>
+            <p class="sv-hint">Dimensionless unit vector written to MuMax3 for non-preset models. switching_v1 derives m₀ from the selected P/AP transition.</p>
+            <div class="sv-field">
+              <label for="sv-initial-seed">Random seed</label>
+              <input id="sv-initial-seed" type="number" step="1" />
+              <p class="sv-hint">Serialized only when random initialization is selected.</p>
+            </div>
+          </fieldset>
+
+          <details class="sv-science-section">
+            <summary>Numerical model</summary>
+            <fieldset>
+              <legend>MuMax3 request draft</legend>
+              <p class="sv-boundary">Draft parameters for the API MuMax3 worker. Local demo fixtures ignore these fields. Physical execution happens only when MUMAX3_BINARY is configured.</p>
+              <div class="sv-field" data-field="solverDrafts.mumax3.modelKind">
+                <label for="sv-mumax-model">MuMax3 model kind</label>
+                <select id="sv-mumax-model" aria-describedby="sv-mumax-model-note">
+                  <option value="reference_pmtj_v01_equilibrium">Reference pMTJ V01 · zero-temperature equilibrium</option>
+                  <option value="smoke">MuMax3 smoke / basic</option>
+                  <option value="spinvault_mtj_free_layer_v0">SpinVault MTJ free-layer v0 · stable/basic</option>
+                  <option value="spinvault_mtj_free_layer_v0_visible">SpinVault MTJ free-layer v0 · visible dynamics</option>
+                  <option value="spinvault_mtj_free_layer_switching_v1">SpinVault MTJ free-layer switching v1 · field pulse</option>
+                </select>
+                <p class="sv-hint" id="sv-mumax-model-note">V01 uses MuMax3 relax() and preserves initial/final OVF fields. It requires 0 K because no thermal field is configured. No mode is calibrated or experimentally validated.</p>
+                <p class="sv-field-error" hidden></p>
+              </div>
+              <div class="sv-vector-grid">
+                <span>Mesh cell size (nm)</span>
+                <label>X<input id="sv-mesh-x" type="number" min="0" step="0.1" title="Mesh x draft; must be smaller than device length." /></label>
+                <label>Y<input id="sv-mesh-y" type="number" min="0" step="0.1" title="Mesh y draft; must be smaller than device width." /></label>
+                <label>Z<input id="sv-mesh-z" type="number" min="0" step="0.1" title="Mesh z draft; must be smaller than free-layer thickness." /></label>
+              </div>
+              <p class="sv-hint">Used with gridSize to build the real MuMax3 mesh. Inconsistent geometry is blocked before submission.</p>
+              <div class="sv-field" data-field="solverDrafts.mumax3.saturationMagnetization">
+                <label for="sv-msat">Saturation magnetization</label>
+                <div class="sv-qty"><input id="sv-msat" type="number" step="1000" /><select id="sv-msat-unit" aria-label="Saturation magnetization unit"></select></div>
+                <p class="sv-hint">A/m · MuMax3 draft · not used by demo.</p><p class="sv-field-error" hidden></p>
+              </div>
+              <div class="sv-field" data-field="solverDrafts.mumax3.exchangeStiffness">
+                <label for="sv-exchange">Exchange stiffness</label>
+                <div class="sv-qty"><input id="sv-exchange" type="number" step="1e-12" /><select id="sv-exchange-unit" aria-label="Exchange stiffness unit"></select></div>
+                <p class="sv-hint">J/m · MuMax3 draft. This frontend does not solve exchange interactions.</p><p class="sv-field-error" hidden></p>
+              </div>
+              <div class="sv-field" data-field="solverDrafts.mumax3.dampingAlpha">
+                <label for="sv-damping">Damping alpha</label>
+                <div class="sv-qty"><input id="sv-damping" type="number" step="0.001" /><select id="sv-damping-unit" aria-label="Damping alpha unit"></select></div>
+                <p class="sv-hint">Dimensionless · MuMax3 draft · only basic numeric validation is applied.</p><p class="sv-field-error" hidden></p>
+              </div>
+              <div class="sv-field" data-field="solverDrafts.mumax3.anisotropyConstant">
+                <label for="sv-ku1">Uniaxial anisotropy Ku1</label>
+                <div class="sv-qty"><input id="sv-ku1" type="number" min="0" step="1000" /><select id="sv-ku1-unit" aria-label="Uniaxial anisotropy unit"></select></div>
+                <p class="sv-hint">J/m³ · written directly to MuMax3 Ku1 for switching_v1.</p><p class="sv-field-error" hidden></p>
+              </div>
+              <div class="sv-vector-grid" data-field="solverDrafts.mumax3.anisotropyAxis">
+                <span>Anisotropy axis</span>
+                <label>X<input id="sv-axis-x" type="number" step="0.01" /></label>
+                <label>Y<input id="sv-axis-y" type="number" step="0.01" /></label>
+                <label>Z<input id="sv-axis-z" type="number" step="0.01" /></label>
+                <p class="sv-field-error" hidden></p>
+              </div>
+              <p class="sv-hint">Dimensionless direction vector normalized and written to MuMax3 anisU.</p>
+              <div class="sv-field" data-field="solverDrafts.mumax3.fieldPulseAmplitude">
+                <label for="sv-pulse-amplitude">Switching field-pulse amplitude</label>
+                <div class="sv-qty"><input id="sv-pulse-amplitude" type="number" min="0" step="0.01" /><select id="sv-pulse-amplitude-unit" aria-label="Field-pulse amplitude unit"></select></div>
+                <p class="sv-hint">Applied along the requested transition target direction during the pulse.</p><p class="sv-field-error" hidden></p>
+              </div>
+              <div class="sv-field" data-field="solverDrafts.mumax3.fieldPulseDuration">
+                <label for="sv-pulse-duration">Switching field-pulse duration</label>
+                <div class="sv-qty"><input id="sv-pulse-duration" type="number" min="0" step="0.01" /><select id="sv-pulse-duration-unit" aria-label="Field-pulse duration unit"></select></div>
+                <p class="sv-hint">Must be shorter than total MuMax3 simulation time.</p><p class="sv-field-error" hidden></p>
+              </div>
+              <div class="sv-field" data-field="solverDrafts.mumax3.switchingThreshold">
+                <label for="sv-switching-threshold">Switching classification threshold |m·pinned|</label>
+                <input id="sv-switching-threshold" type="number" min="0.01" max="1" step="0.01" />
+                <p class="sv-hint">Post-run classification threshold only; it does not alter LLG dynamics.</p><p class="sv-field-error" hidden></p>
+              </div>
+            </fieldset>
+
+            <details class="sv-science-section">
+              <summary>Transport future / unavailable</summary>
+            <fieldset>
+              <legend>Kwant transport draft</legend>
+              <p class="sv-boundary">UNAVAILABLE. Kwant is not connected. These values never enter the MuMax3 draft.</p>
+              <div class="sv-field"><label for="sv-kwant-lattice">Lattice model</label><select id="sv-kwant-lattice"><option value="placeholder_1d">Placeholder 1D</option><option value="placeholder_2d">Placeholder 2D</option><option value="custom_pending">Custom pending</option></select></div>
+              <div class="sv-field"><label for="sv-kwant-leads">Lead configuration</label><select id="sv-kwant-leads"><option value="two_terminal">Two terminal</option><option value="multi_terminal_pending">Multi-terminal pending</option></select></div>
+              <div class="sv-field">
+                <label for="sv-hopping">Hopping energy</label>
+                <div class="sv-qty"><input id="sv-hopping" type="number" step="0.01" /><select id="sv-hopping-unit" aria-label="Hopping energy unit"></select></div>
+                <p class="sv-hint">eV · Kwant draft only · not used by demo.</p>
+              </div>
+              <div class="sv-field">
+                <label for="sv-onsite">Onsite energy</label>
+                <div class="sv-qty"><input id="sv-onsite" type="number" step="0.01" /><select id="sv-onsite-unit" aria-label="Onsite energy unit"></select></div>
+                <p class="sv-hint">eV · Kwant draft only · not used by demo.</p>
+              </div>
+              <div class="sv-field">
+                <label for="sv-soc">Spin–orbit coupling</label>
+                <div class="sv-qty"><input id="sv-soc" type="number" step="0.01" /><select id="sv-soc-unit" aria-label="Spin–orbit coupling unit"></select></div>
+                <p class="sv-hint">eV · Kwant draft only. No Hamiltonian is evaluated.</p>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Surrogate metadata</legend>
+              <p class="sv-boundary">Surrogate model not connected. No model ID, prediction, or inference is present.</p>
+            </fieldset>
+            </details>
+          </details>
+
+          <fieldset>
+            <legend>Run controls</legend>
+            <div class="sv-field" data-field="controls.duration">
+              <label for="sv-duration">Duration</label>
+              <div class="sv-qty">
+                <input id="sv-duration" type="number" min="0" step="0.1" inputmode="decimal" aria-describedby="sv-duration-error" />
+                <select id="sv-duration-unit" aria-label="Duration unit"></select>
+              </div>
+              <p class="sv-field-error" id="sv-duration-error" hidden></p>
+            </div>
+            <div class="sv-field" data-field="controls.temperature">
+              <label for="sv-temperature">Temperature</label>
+              <div class="sv-qty">
+                <input id="sv-temperature" type="number" min="0" step="1" inputmode="decimal" aria-describedby="sv-temperature-error" />
+                <select id="sv-temperature-unit" aria-label="Temperature unit"></select>
+              </div>
+              <p class="sv-field-error" id="sv-temperature-error" hidden></p>
+            </div>
+            <div class="sv-field">
+              <label for="sv-selected-region">Selected region</label>
+              <select id="sv-selected-region">
+                <option value="free">Magnetic layer</option>
+                <option value="barrier">Barrier</option>
+                <option value="reference">Reference layer</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+            <label class="sv-toggle">
+              <input id="sv-record-timeline" type="checkbox" />
+              <span>Record timeline</span>
+            </label>
+            <label class="sv-toggle">
+              <input id="sv-pause-warning" type="checkbox" />
+              <span>Pause on warning</span>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Scenario provenance</legend>
+            <div class="sv-data-readout" id="sv-scenario-provenance"></div>
+            <p class="sv-hint">Presets and exports carry review status. A preset is never equivalent to an authoritative material source.</p>
+          </fieldset>
+          </details>
+        </aside>
+
+        <div class="sv-main">
+        <section class="sv-stage" id="sv-device" aria-label="Device viewport">
+          <div class="sv-toolbar" aria-label="Simulation controls">
+            <button class="sv-run" id="sv-run" type="button">Run Python LLG</button>
+            <button class="sv-run sv-exit-fullscreen" id="sv-exit-fullscreen" type="button" hidden>Exit fullscreen</button>
+            <button class="sv-icon-btn" id="sv-pause" type="button" title="Play/pause" aria-label="Play or pause" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>
+            </button>
+            <button class="sv-icon-btn" id="sv-step-back" type="button" title="Step back" aria-label="Step back one frame">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 6h2v12H7zm4 6 8-6v12z"/></svg>
+            </button>
+            <button class="sv-icon-btn" id="sv-step-forward" type="button" title="Step forward" aria-label="Step forward one frame">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 6h2v12h-2zM5 6l8 6-8 6z"/></svg>
+            </button>
+            <button class="sv-icon-btn" id="sv-cancel" type="button" title="Cancel run" aria-label="Cancel run" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 6h12v12H6z"/></svg>
+            </button>
+            <span class="sv-toolbar-sep" aria-hidden="true"></span>
+            <label class="sv-mode-select">
+              <span>View</span>
+              <select id="sv-display-mode" aria-label="Magnetization representation">
+                <option value="vector">vector</option>
+                <option value="mz">mz</option>
+                <option value="mx">mx</option>
+                <option value="my">my</option>
+              </select>
+            </label>
+            <span class="sv-zoom-value" id="sv-zoom-value" hidden>1.00×</span>
+          </div>
+          <div id="sv-viewport-modes" aria-label="Center viewport physics mode"></div>
+          <div id="sv-snapshot-strip" class="sv-snapshot-strip" aria-label="Time evolution snapshots"></div>
+          <div class="sv-viewport-frame">
+            <svg id="sv-viewport-svg" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
+          <p id="sv-inspect-readout" class="sv-inspect-readout" hidden></p>
+          <div id="sv-mumax-playback" aria-live="polite"></div>
+          <ol class="sv-timeline" id="sv-timeline" aria-label="Run status timeline"></ol>
+        </section>
+
+        <section class="sv-analysis" id="sv-analysis" aria-label="Results and analysis">
+          <div class="sv-tabs" role="tablist" aria-label="Analysis views">
+            <button type="button" role="tab" id="tab-results" class="is-active" data-analysis-tab="results" aria-controls="panel-results" aria-selected="true" tabindex="0">Results</button>
+            <button type="button" role="tab" id="tab-twin" data-analysis-tab="twin" aria-controls="panel-twin" aria-selected="false" tabindex="-1">Twin</button>
+            <button type="button" role="tab" id="tab-logs" data-analysis-tab="logs" aria-controls="panel-logs" aria-selected="false" tabindex="-1">Logs</button>
+            <button type="button" role="tab" id="tab-artifacts" data-analysis-tab="artifacts" aria-controls="panel-artifacts" aria-selected="false" tabindex="-1">Artifacts</button>
+            <button type="button" role="tab" id="tab-provenance" data-analysis-tab="provenance" aria-controls="panel-provenance" aria-selected="false" tabindex="-1">Provenance</button>
+            <button type="button" role="tab" id="tab-validation" data-analysis-tab="validation" aria-controls="panel-validation" aria-selected="false" tabindex="-1">Validation</button>
+          </div>
+          <div class="sv-tab-panels">
+            <div class="sv-panel" id="panel-results" role="tabpanel" data-analysis-panel="results" aria-labelledby="tab-results">
+              <div id="sv-results-body"></div>
+            </div>
+            <div class="sv-panel" id="panel-twin" role="tabpanel" data-analysis-panel="twin" aria-labelledby="tab-twin" hidden>
+              <div id="sv-twin-metrics"></div>
+            </div>
+            <div class="sv-panel" id="panel-logs" role="tabpanel" data-analysis-panel="logs" aria-labelledby="tab-logs" hidden>
+              <div id="sv-logs-body"></div>
+            </div>
+            <div class="sv-panel" id="panel-artifacts" role="tabpanel" data-analysis-panel="artifacts" aria-labelledby="tab-artifacts" hidden>
+              <div id="sv-artifacts-body"></div>
+            </div>
+            <div class="sv-panel" id="panel-provenance" role="tabpanel" data-analysis-panel="provenance" aria-labelledby="tab-provenance" hidden>
+              <div id="sv-provenance-body"></div>
+            </div>
+            <div class="sv-panel" id="panel-validation" role="tabpanel" data-analysis-panel="validation" aria-labelledby="tab-validation" hidden>
+              <ul class="sv-validation-list" id="sv-validation-list"></ul>
+            </div>
+          </div>
+        </section>
+        </div>
+      </div>
+    </div>
+
+    <dialog class="sv-dialog" id="sv-settings" aria-labelledby="sv-settings-title">
+      <form method="dialog">
+        <h2 id="sv-settings-title">Workspace settings</h2>
+        <p>Connect to the FastAPI Twin API for MuMax3/Kwant/surrogate job status. Demo can stay local.</p>
+
+        <label class="sv-settings-field" for="sv-api-url">Backend API URL</label>
+        <input id="sv-api-url" type="url" autocomplete="off" spellcheck="false" placeholder="http://localhost:8001" />
+        <p class="sv-hint">Default is http://localhost:8001. Stored in this browser only.</p>
+
+        <label class="sv-settings-field" for="sv-demo-mode">Demo execution</label>
+        <select id="sv-demo-mode">
+          <option value="local">Local demo adapter (no network)</option>
+          <option value="backend">Backend demo endpoint</option>
+        </select>
+
+        <button class="sv-run" id="sv-settings-save" type="button">Save connection</button>
+        <p id="sv-settings-status" class="sv-hint" role="status"></p>
+
+        <h3>Current limitations</h3>
+        <ul id="sv-limitations" class="sv-limitations"></ul>
+        <button class="sv-text-link" id="sv-settings-close" type="submit">Close</button>
+      </form>
+    </dialog>
+    <noscript>
+      <p class="sv-noscript">The SpinVault Twin workspace needs JavaScript to bind scenario state to the schematic and demo runner.</p>
+    </noscript>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OVF error smoke</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #060d15;
+      }
+      svg {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <svg role="img"></svg>
+    <script type="module">
+      import { renderOvfFrameErrorViewport } from "../components/viewport.js";
+
+      renderOvfFrameErrorViewport(
+        document.querySelector("svg"),
+        "Backend rejected the request: solverDrafts.mumax3.anisotropyConstant: Field required",
+        {
+          freeLayerLength: { value: 80, unit: "nm" },
+          freeLayerWidth: { value: 40, unit: "nm" },
+          freeLayerThickness: { value: 1.2, unit: "nm" },
+          barrierThickness: { value: 1, unit: "nm" },
+          referenceLayerThickness: { value: 2.4, unit: "nm" }
+        }
+      );
+    </script>
+  </body>
+</html>

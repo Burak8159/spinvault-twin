@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Scientific board smoke</title>
+    <link rel="stylesheet" href="../../../simulator.css?v=spinvault-twin-28-20260816" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #0b1220;
+        color: #e2e8f0;
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      }
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .sv-smoke-meta {
+        margin-bottom: 12px;
+        font-size: 12px;
+        color: #94a3b8;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="sv-smoke-meta" data-smoke-meta>Loading MuMax3 job…</p>
+      <section data-scientific-board-root></section>
+      <section data-quantum-only style="margin-top: 24px"></section>
+    </main>
+    <script type="module">
+      import { ScientificBoardController, buildScientificBoardModel } from "../components/scientificBoard.js";
+      import { buildQuantumTransportView } from "../lib/quantumTransportView.js";
+      import { splitMagnetizationSeries } from "../lib/resultView.js";
+
+      const params = new URLSearchParams(location.search);
+      const api = (params.get("api") || "http://127.0.0.1:8001").replace(/\/$/, "");
+      const jobId = params.get("job") || "job_653f821fa6a8";
+      const meta = document.querySelector("[data-smoke-meta]");
+      const root = document.querySelector("[data-scientific-board-root]");
+      const quantumOnly = document.querySelector("[data-quantum-only]");
+
+      const jobRes = await fetch(`${api}/api/simulations/${encodeURIComponent(jobId)}`);
+      const job = await jobRes.json();
+      const resultRes = await fetch(`${api}/api/simulations/${encodeURIComponent(jobId)}/result`);
+      const payload = await resultRes.json();
+      const result = payload.result ?? payload;
+      meta.textContent = `API ${api} · job ${jobId} · status ${job.status} · source ${result.source} · frames ${
+        result.artifacts?.frames?.length ?? 0
+      }`;
+
+      const magnetization = splitMagnetizationSeries(result.series ?? []);
+      const tunneling = buildQuantumTransportView({
+        result,
+        analyticalParams: {
+          barrierThicknessNm: 1,
+          barrierHeightEv: 1.2,
+          electronEnergyEv: 0.25,
+          effectiveMassRatio: 0.4,
+          biasVolts: 0,
+          temperatureK: 300,
+          cellAreaNm2: 3200,
+          spinState: /** @type {0 | 1} */ (0),
+          spinPolarization: 0.4
+        }
+      });
+      const model = buildScientificBoardModel({
+        result,
+        job,
+        magnetization,
+        tunneling
+      });
+      const board = new ScientificBoardController({
+        root,
+        jobId,
+        fetchFrame: async (id, frameIndex) => {
+          const response = await fetch(
+            `${api}/api/simulations/${encodeURIComponent(id)}/frames/${encodeURIComponent(String(frameIndex))}`
+          );
+          if (!response.ok) throw new Error(`frame ${frameIndex} HTTP ${response.status}`);
+          return response.json();
+        }
+      });
+      board.render(model, { jobId });
+
+      // Dedicated quantum panel capture host (same renderer, isolated scroll target)
+      const qBoard = new ScientificBoardController({
+        root: quantumOnly,
+        jobId: null
+      });
+      qBoard.render(
+        buildScientificBoardModel({
+          result,
+          magnetization,
+          tunneling
+        }),
+        { jobId: null }
+      );
+      quantumOnly.scrollIntoView = quantumOnly.scrollIntoView.bind(quantumOnly);
+      await new Promise((r) => setTimeout(r, 2500));
+      document.body.dataset.boardReady = "true";
+    </script>
+  </body>
+</html>

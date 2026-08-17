@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Digital Twin | SpinVault</title>
+    <link rel="stylesheet" href="styles.css?v=spinvault-digital-twin-20260814" />
+    <script defer src="script.js?v=spinvault-digital-twin-20260814"></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <div class="bar-inner">
+          <a class="brand" href="index.html">
+            <svg class="brand-mark" aria-hidden="true" viewBox="0 0 80 80" role="img">
+              <g fill="currentColor">
+                <path d="M40 4L52 20H45V28H35V20H28Z" />
+                <circle cx="40" cy="40" r="16" />
+                <rect x="31" y="37" width="18" height="6" rx="3" fill="var(--bg)" />
+                <path d="M40 76L28 60H35V52H45V60H52Z" />
+              </g>
+            </svg>
+            <span>SpinVault</span>
+          </a>
+          <nav class="nav" aria-label="Primary">
+            <a href="index.html">Home</a>
+            <div class="dropdown">
+              <a class="dropdown-trigger" href="company.html">Company</a>
+              <div class="dropdown-menu">
+                <a href="company.html">Overview</a>
+                <a href="company.html#team">Team</a>
+                <a href="company.html#business-model">Business model</a>
+                <a href="company.html#milestones">Milestone roadmap</a>
+              </div>
+            </div>
+            <div class="dropdown">
+              <a class="dropdown-trigger active" href="technology.html">Technology</a>
+              <div class="dropdown-menu">
+                <a href="technology.html">How it works</a>
+                <a href="technology.html#simulation">Simulation</a>
+                <a href="simulator.html">Twin simulator</a>
+                <a class="active" href="digital-twin.html">Digital twin</a>
+              </div>
+            </div>
+            <a href="contact.html">Contact</a>
+            <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle light mode" aria-pressed="false"><span class="toggle-icon toggle-moon">☾</span><span class="toggle-knob"></span><span class="toggle-icon toggle-sun">☀</span></button>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section class="section-card digital-twin-workbench" data-digital-twin>
+          <p>Engineering workspace: <a href="simulator.html">Open SpinVault Twin simulator</a>. This page remains the comparison sketch.</p>
+          <div class="twin-runbar" aria-label="Twin run status">
+            <article><span>Scenario</span><strong data-twin-scenario>Balanced review</strong></article>
+            <article><span>Health</span><strong data-twin-health>--</strong></article>
+            <article><span>Risk driver</span><strong data-twin-driver>--</strong></article>
+            <article><span>Evidence grade</span><strong data-twin-grade>--</strong></article>
+          </div>
+
+          <div class="twin-layout">
+            <aside class="twin-controls" aria-label="Digital twin controls">
+              <div class="twin-tabs" role="tablist" aria-label="Preset scenarios">
+                <button class="active" type="button" data-twin-preset="balanced" aria-selected="true">Balanced</button>
+                <button type="button" data-twin-preset="hot">Hot stress</button>
+                <button type="button" data-twin-preset="attack">Attack</button>
+              </div>
+              <label><span>Barrier height</span><strong data-twin-readout="barrierEv">3.00 eV</strong><input data-twin-input="barrierEv" type="range" min="1.2" max="5.2" step="0.05" value="3.0" /></label>
+              <label><span>Barrier width</span><strong data-twin-readout="barrierNm">3.00 nm</strong><input data-twin-input="barrierNm" type="range" min="0.8" max="5.0" step="0.05" value="3.0" /></label>
+              <label><span>Electron energy</span><strong data-twin-readout="energyEv">0.50 eV</strong><input data-twin-input="energyEv" type="range" min="0.05" max="1.2" step="0.01" value="0.5" /></label>
+              <label><span>Temperature</span><strong data-twin-readout="temperatureK">300 K</strong><input data-twin-input="temperatureK" type="range" min="180" max="520" step="1" value="300" /></label>
+              <label><span>Spin polarization</span><strong data-twin-readout="spin">72%</strong><input data-twin-input="spin" type="range" min="0.1" max="0.95" step="0.01" value="0.72" /></label>
+              <label><span>Disturbance</span><strong data-twin-readout="disturbance">20%</strong><input data-twin-input="disturbance" type="range" min="0" max="1" step="0.01" value="0.2" /></label>
+            </aside>
+
+            <section class="twin-stage" aria-label="Digital twin simulation canvas">
+              <canvas data-twin-canvas></canvas>
+              <div class="twin-equations">
+                <article><small>WKB leakage</small><strong data-twin-equation="leak">--</strong></article>
+                <article><small>TMR contrast</small><strong data-twin-equation="tmr">--</strong></article>
+                <article><small>Thermal Delta</small><strong data-twin-equation="delta">--</strong></article>
+              </div>
+            </section>
+          </div>
+
+          <div class="twin-output-grid">
+            <article><small>Reference NAND</small><strong data-twin-output="nand">--</strong><p data-twin-output-copy="nand">--</p></article>
+            <article><small>SpinVault MTJ</small><strong data-twin-output="spin">--</strong><p data-twin-output-copy="spin">--</p></article>
+            <article><small>Recommended next test</small><strong data-twin-output="test">--</strong><p data-twin-output-copy="test">--</p></article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div>
+          <strong>SpinVault</strong>
+          <p>Research-stage simulation workspace. Outputs are model estimates, not fabricated device measurements.</p>
+        </div>
+        <a href="technology.html">Back to technology</a>
+      </footer>
+    </div>
+  </body>
+</html>

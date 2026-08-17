@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Product | SpinVault Digital Twin</title>
+    <link rel="stylesheet" href="styles.css?v=spinvault-blueprint-final4-20260728" />
+    <script defer src="script.js?v=spinvault-blueprint-final4-20260728"></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <div class="bar-inner">
+          <a class="brand" href="index.html">
+            <svg class="brand-mark" aria-hidden="true" viewBox="0 0 80 80" role="img">
+              <g fill="currentColor">
+                <path d="M40 4L52 20H45V28H35V20H28Z" />
+                <circle cx="40" cy="40" r="16" />
+                <rect x="31" y="37" width="18" height="6" rx="3" fill="var(--bg)" />
+                <path d="M40 76L28 60H35V52H45V60H52Z" />
+              </g>
+            </svg>
+            <span>SpinVault</span>
+          </a>
+          <nav class="nav" aria-label="Primary">
+            <a href="index.html">Home</a>
+            <div class="dropdown">
+              <a class="dropdown-trigger" href="company.html">Company</a>
+              <div class="dropdown-menu">
+                <a href="company.html">Overview</a>
+                <a href="company.html#team">Team</a>
+                <a href="company.html#team-system">Team system</a>
+                <a href="company.html#about">About SpinVault</a>
+                <a href="company.html#foundation">Our foundation</a>
+                <a href="company.html#thesis">Company thesis</a>
+                <a href="company.html#who-this-is-for">Who this is for</a>
+                <a href="company.html#how-we-work">How we work</a>
+                <a href="company.html#company-faq">FAQ</a>
+                <a href="company.html#business-model">Business model</a>
+                <a href="company.html#commercial-model">Commercial model</a>
+                <a href="company.html#revenue-architecture">Revenue architecture</a>
+                <a href="company.html#orchestration-moat">Business moat</a>
+                <a href="company.html#funding">Use of funding</a>
+                <a href="company.html#go-to-market">Go-to-market</a>
+                <a href="company.html#milestones">Milestone roadmap</a>
+                <a href="company.html#discipline">Financial discipline</a>
+                <a href="company.html#future-vision">Future vision</a>
+              </div>
+            </div>
+            <div class="dropdown">
+              <a class="dropdown-trigger" href="technology.html">Technology</a>
+              <div class="dropdown-menu">
+                <a href="technology.html">How it works</a>
+                <a href="technology.html#simulation">Simulation</a>
+                <a href="simulator.html">Twin simulator</a>
+                <a href="digital-twin.html">Digital twin</a>
+                <a href="technology.html#modules">Modules</a>
+              </div>
+            </div>
+            <a href="contact.html">Contact</a>
+            <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle light mode" aria-pressed="false"><span class="toggle-icon toggle-moon">☾</span><span class="toggle-knob"></span><span class="toggle-icon toggle-sun">☀</span></button>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section class="section-card product-hero">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Product direction</span>
+              <h2>SpinVault Digital Twin</h2>
+            </div>
+            <p>A research-grade simulation workspace for comparing a conventional NAND charge-storage cell with SpinVault's proposed spintronic memory cell.</p>
+          </div>
+          <div class="split-layout">
+            <div>
+              <p class="lead">The Digital Twin is designed to turn the project from a pitch into a measurable technical system: adjustable cell parameters, visible state evolution, equations behind the model, and exportable evidence for reviewers, advisors, and future partners.</p>
+              <div class="hero-actions">
+                <a class="btn primary" href="simulator.html">Open Twin simulator</a>
+                <a class="btn secondary" href="contact.html#pricing">Contact for pricing</a>
+              </div>
+            </div>
+            <div class="product-visual" aria-label="Digital twin product interface visualization">
+              <div class="twin-shell">
+                <div class="twin-header"><span>Live cell twin</span><strong>MTJ vs NAND</strong></div>
+                <div class="twin-grid">
+                  <span class="twin-node active">1</span>
+                  <span class="twin-link"></span>
+                  <span class="twin-node">0</span>
+                </div>
+                <div class="twin-chart"><i></i><i></i><i></i></div>
+                <div class="twin-footer"><span>barrier</span><span>leak</span><span>retention</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div class="section-head">
+            <div><h2>What the product does</h2></div>
+            <p>Product content is kept here; the deep physics remains on Technology and the commercial roadmap remains on Business.</p>
+          </div>
+          <div class="grid-4" data-reveal-group>
+            <article class="feature"><h3>Cell comparison</h3><p>Switch between NAND charge retention and SpinVault MTJ readout to see how each cell stores and loses state.</p></article>
+            <article class="feature"><h3>Parameter workspace</h3><p>Adjust barrier width, effective temperature, anisotropy margin, leakage pressure, and write-state assumptions.</p></article>
+            <article class="feature"><h3>Evidence snapshots</h3><p>Capture values, assumptions, and visual traces so a reviewer can understand how a conclusion was reached.</p></article>
+            <article class="feature"><h3>Private evaluation</h3><p>Use a controlled partner path for NDA-backed simulations, advisor review, and early commercial validation.</p></article>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div class="section-head">
+            <div><h2>Digital twin workflow</h2></div>
+            <p>A clean path from parameter input to model output, designed around the orchestration layer we can build next.</p>
+          </div>
+          <div class="product-flow" data-reveal-group>
+            <article><strong>01</strong><h3>Set parameters</h3><p>Choose NAND or SpinVault, then tune the cell variables relevant to the selected model.</p></article>
+            <article><strong>02</strong><h3>Run fast model</h3><p>The browser calculates a responsive approximation immediately for product demos and reviewer exploration.</p></article>
+            <article><strong>03</strong><h3>Request validation</h3><p>Promising parameter sets can be queued for higher-fidelity backend validation when the orchestration layer is live.</p></article>
+            <article><strong>04</strong><h3>Export evidence</h3><p>Results become structured notes for patent planning, investor updates, and technical partner conversations.</p></article>
+          </div>
+        </section>
+
+        <section class="section dark-band" id="signup">
+          <div class="section-head">
+            <div><h2>Sign up for early access.</h2></div>
+            <p>The Digital Twin is in prototype development. Early access is intended for advisors, technical reviewers, and potential partners.</p>
+          </div>
+          <div class="grid-3">
+            <article class="feature"><h3>Reviewer access</h3><p>For people checking the scientific assumptions, equations, and simulation behavior.</p><a class="text-link" href="contact.html#digital-twin">Request reviewer access</a></article>
+            <article class="feature"><h3>Partner access</h3><p>For labs, production partners, and strategic collaborators evaluating SpinVault's direction.</p><a class="text-link" href="contact.html#digital-twin">Request partner access</a></article>
+            <article class="feature"><h3>Founder demo</h3><p>For guided walkthroughs of the interface, roadmap, and current technical limits.</p><a class="text-link" href="contact.html#digital-twin">Book a demo path</a></article>
+          </div>
+        </section>
+
+        <section class="section-card" id="pricing">
+          <div class="section-head">
+            <div><h2>Pricing</h2></div>
+            <p>Pricing is handled through direct contact while the product is pre-commercial and research-stage.</p>
+          </div>
+          <div class="pricing-grid" data-reveal-group>
+            <article class="number-card"><h3>Academic / advisor review</h3><p>For scientific feedback, model review, and supervised validation planning.</p><a class="text-link" href="contact.html#pricing">Contact for pricing</a></article>
+            <article class="number-card"><h3>Partner evaluation</h3><p>For private technical assessment, custom parameter runs, and early integration conversations.</p><a class="text-link" href="contact.html#pricing">Contact for pricing</a></article>
+            <article class="number-card"><h3>Enterprise validation</h3><p>For future high-fidelity runs, experiment metadata, secured report access, and orchestration-backed workflows.</p><a class="text-link" href="contact.html#pricing">Contact for pricing</a></article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer"><span>SpinVault · Digital Twin product</span><span class="footer-links"><a href="privacy.html">Privacy</a><a href="cookies.html">Cookie settings</a></span></footer>
+    </div>
+  </body>
+</html>
