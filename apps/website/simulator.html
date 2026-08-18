@@ -9,7 +9,9 @@
     <link rel="stylesheet" href="simulator.css?v=spinvault-twin-56-20260817" />
     <script>
       (() => {
-        const fallbackApiUrl = "http://localhost:8001";
+        const host = window.location.hostname;
+        const pageIsPublic = host && host !== "localhost" && host !== "127.0.0.1" && host !== "[::1]";
+        const fallbackApiUrl = pageIsPublic ? window.location.origin : "http://localhost:8001";
         let configuredApiUrl = "";
         try {
           configuredApiUrl = new URLSearchParams(window.location.search).get("api") || "";
@@ -17,7 +19,19 @@
           configuredApiUrl = "";
         }
         try {
-          configuredApiUrl = configuredApiUrl || window.localStorage.getItem("spinvault-api-url") || "";
+          const stored = window.localStorage.getItem("spinvault-api-url") || "";
+          if (stored) {
+            let storedIsLocal = false;
+            try {
+              const storedHost = new URL(stored, window.location.origin).hostname;
+              storedIsLocal = storedHost === "localhost" || storedHost === "127.0.0.1" || storedHost === "[::1]";
+            } catch {
+              storedIsLocal = false;
+            }
+            if (!(pageIsPublic && storedIsLocal)) {
+              configuredApiUrl = configuredApiUrl || stored;
+            }
+          }
         } catch {
           configuredApiUrl = configuredApiUrl || "";
         }
@@ -25,7 +39,7 @@
       })();
     </script>
     <script defer src="script.js?v=spinvault-twin-56-20260817"></script>
-    <script type="module" src="js/simulator/main.js?v=spinvault-twin-56-20260817"></script>
+    <script type="module" src="js/simulator/main.js?v=spinvault-twin-57-20260817"></script>
   </head>
   <body class="simulator-app">
     <a class="sv-skip" href="#sv-workspace">Skip to simulator workspace</a>

@@ -57,4 +57,30 @@ describe("API URL config", () => {
       restoreStorage();
     }
   });
+
+  it("uses the page origin on spinvault.biz and ignores a saved localhost API", () => {
+    const restoreStorage = installStorageStub();
+    const originalLocation = globalThis.location;
+    localStorage.setItem("spinvault-api-url", "http://127.0.0.1:8001");
+    Object.defineProperty(globalThis, "location", {
+      configurable: true,
+      value: {
+        hostname: "spinvault.biz",
+        origin: "https://spinvault.biz",
+        search: ""
+      }
+    });
+
+    try {
+      assert.equal(getApiBaseUrl(), "https://spinvault.biz");
+    } finally {
+      localStorage.removeItem("spinvault-api-url");
+      setApiBaseUrl(DEFAULT_API_URL);
+      Object.defineProperty(globalThis, "location", {
+        configurable: true,
+        value: originalLocation
+      });
+      restoreStorage();
+    }
+  });
 });

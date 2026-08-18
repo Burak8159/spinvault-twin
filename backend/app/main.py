@@ -47,7 +47,10 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost):\d+$",
+        allow_origin_regex=(
+            r"^(https?://(127\.0\.0\.1|localhost):\d+"
+            r"|https://(www\.)?spinvault\.biz)$"
+        ),
         allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],

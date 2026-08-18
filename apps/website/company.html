@@ -28,6 +28,8 @@
               <a class="dropdown-trigger active" href="company.html">Company</a>
               <div class="dropdown-menu">
                 <a href="company.html">Overview</a>
+                <a href="company.html#science">Science</a>
+                <a href="company.html#digital-twin">Digital twin</a>
                 <a href="company.html#team">Team</a>
                 <a href="company.html#team-system">Team system</a>
                 <a href="company.html#about">About SpinVault</a>
@@ -42,6 +44,7 @@
                 <a href="company.html#orchestration-moat">Business moat</a>
                 <a href="company.html#funding">Use of funding</a>
                 <a href="company.html#go-to-market">Go-to-market</a>
+                <a href="company.html#proof-path">Proof path</a>
                 <a href="company.html#milestones">Milestone roadmap</a>
                 <a href="company.html#discipline">Financial discipline</a>
                 <a href="company.html#future-vision">Future vision</a>
@@ -55,6 +58,7 @@
                 <a href="technology.html#modules">Modules</a>
               </div>
             </div>
+            <a href="matplotlib-twin.html">Simulator</a>
             <a href="contact.html">Contact</a>
             <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle light mode" aria-pressed="false"><span class="toggle-icon toggle-moon">☾</span><span class="toggle-knob"></span><span class="toggle-icon toggle-sun">☀</span></button>
           </nav>
@@ -62,6 +66,42 @@
       </header>
 
       <main>
+        <section class="section-card" id="science">
+          <div class="section-head">
+            <div><h2>Science</h2></div>
+            <p>SpinVault is a proposed magnetically guided tunnel-barrier storage concept. The goal is to reduce uncontrolled electron transmission through an ultra-thin barrier and preserve a clearer, more secure storage state.</p>
+          </div>
+          <div class="interface-grid">
+            <div class="system-graphic">
+              <div class="layer"><small>STATE</small><strong>Stored bit as a physical configuration</strong><p>Data is treated as a state that must remain distinguishable despite thermal noise, process variation, and tunneling leakage.</p></div>
+              <div class="layer"><small>BARRIER</small><strong>TiN / Al2O3-compatible tunnel membrane</strong><p>The technical model uses barrier height and width instead of unexplained black-box scores.</p></div>
+              <div class="layer"><small>CONTROL</small><strong>Magnetic stabilization layer</strong><p>Magnetic influence is modeled as a stabilizing term that improves spin selectivity and reduces effective leakage exposure.</p></div>
+            </div>
+            <div class="data-panel">
+              <div class="data-row"><span>Reference barrier height</span><span class="status">3.0 eV</span></div>
+              <div class="data-row"><span>Reference barrier width</span><span class="status">3.0 nm</span></div>
+              <div class="data-row"><span>Core model</span><span class="status">WKB tunneling + TMR</span></div>
+              <div class="data-row"><span>Mesh Twin</span><span class="status">64×32×1 LLGS</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-card" id="digital-twin">
+          <div class="section-head">
+            <div><h2>Digital twin</h2></div>
+            <p>A research-stage simulation workspace: editable cell parameters, a local Python mesh run, and labeled analytical retention/leakage. Not a measured device.</p>
+          </div>
+          <div class="grid-4">
+            <article class="feature"><h3>Cell comparison</h3><p>NAND charge retention versus SpinVault MTJ readout, using the same visible assumptions.</p></article>
+            <article class="feature"><h3>Parameter workspace</h3><p>Geometry, material constants, drive, temperature, and barrier inputs are editable on the Twin page.</p></article>
+            <article class="feature"><h3>Mesh maps</h3><p>Spatial panels come from returned 64×32×1 magnetization frames, not a prescribed cartoon sequence.</p></article>
+            <article class="feature"><h3>Evidence snapshots</h3><p>Runs can be inspected, exported, and challenged instead of being repeated from a slide.</p></article>
+          </div>
+          <div class="hero-actions" style="margin-top: 20px;">
+            <a class="btn primary" href="matplotlib-twin.html">Open Simulator</a>
+          </div>
+        </section>
+
         <section class="section-card" id="team">
           <div class="section-head">
             <div><h2>Team</h2></div>
@@ -294,6 +334,19 @@
             <article class="market-node"><small>Automotive</small><h3>Safety-critical electronics</h3><p>Memory systems where stability and physical reliability can matter in harsh environments.</p></article>
             <article class="market-node"><small>Secure storage</small><h3>High-trust devices</h3><p>Products where attack resistance and long-term retention are central to customer value.</p></article>
             <article class="market-node"><small>Industrial automation</small><h3>Operational continuity</h3><p>Factories, robotics, and controls that prioritize simplicity, uptime, and reliable storage behavior.</p></article>
+          </div>
+        </section>
+
+        <section class="section section-card" id="proof-path">
+          <div class="section-head">
+            <div><h2>Proof path</h2></div>
+            <p>The goal is to turn the validated concept into protected intellectual property and then licensing readiness.</p>
+          </div>
+          <div class="timeline">
+            <article class="timeline-item"><div class="num">01</div><h3>Define the claim space</h3><p>Capture the core membrane, control, and storage behavior in a defensible way.</p></article>
+            <article class="timeline-item"><div class="num">02</div><h3>Validate the concept</h3><p>Use simulation and external review to strengthen the technical story.</p></article>
+            <article class="timeline-item"><div class="num">03</div><h3>Build the proof of concept</h3><p>Move toward lab tests and a physical demonstration with measurable output.</p></article>
+            <article class="timeline-item"><div class="num">04</div><h3>File and license</h3><p>Protect the result and prepare it for commercial partnership or production.</p></article>
           </div>
         </section>
 

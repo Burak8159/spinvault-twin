@@ -36,3 +36,16 @@ def test_cors_allows_localhost_private_network_preflight(client) -> None:
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:4180"
     assert response.headers["access-control-allow-private-network"] == "true"
+
+
+def test_cors_allows_public_spinvault_domain(client) -> None:
+    response = client.options(
+        "/api/solvers",
+        headers={
+            "Origin": "https://spinvault.biz",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://spinvault.biz"

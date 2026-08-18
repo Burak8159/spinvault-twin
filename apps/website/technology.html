@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Technology | SpinVault</title>
-    <link rel="stylesheet" href="styles.css?v=spinvault-blueprint-final5-20260730" />
-    <script defer src="script.js?v=spinvault-blueprint-final5-20260730"></script>
+    <link rel="stylesheet" href="styles.css?v=spinvault-blueprint-final8-20260817" />
+    <script defer src="script.js?v=spinvault-blueprint-final8-20260817"></script>
   </head>
   <body>
     <div class="page">
@@ -57,6 +57,7 @@
                 <a href="technology.html#modules">Modules</a>
               </div>
             </div>
+            <a href="matplotlib-twin.html">Simulator</a>
             <a href="contact.html">Contact</a>
             <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle light mode" aria-pressed="false"><span class="toggle-icon toggle-moon">☾</span><span class="toggle-knob"></span><span class="toggle-icon toggle-sun">☀</span></button>
           </nav>
@@ -176,7 +177,7 @@
             </article>
             <article class="equation-card">
               <h3>Thermal stability</h3>
-              <div class="math-display">Δ = Eᵣₑₜₑₙₜᵢₒₙ / kBT</div>
+              <div class="math-display">Δ = E<sub>r</sub> / k<sub>B</sub>T</div>
               <p>Retention is modeled through an energy barrier relative to thermal energy. Higher Delta means a state is less likely to thermally flip or drift.</p>
             </article>
             <article class="equation-card">
@@ -249,7 +250,7 @@
             </article>
             <article class="equation-card">
               <h3>Noise response</h3>
-              <div class="math-display">kBT ↑ ⇒ Δ = Eb / kBT ↓</div>
+              <div class="math-display">k<sub>B</sub>T ↑ ⇒ Δ = E<sub>r</sub> / k<sub>B</sub>T ↓</div>
               <p>Higher temperature raises thermal energy and weakens the retention margin. The simulator now exposes this instead of hiding it inside a generic noise slider.</p>
             </article>
             <article class="equation-card">
@@ -285,7 +286,7 @@
         <section class="section section-card">
           <div class="section-head">
             <div><h2>Mathematical model and sensitivity graphs</h2></div>
-            <p>The goal is not to hide behind animations. These graphs show the relationships the simulator is using: exponential barrier sensitivity, TMR contrast, thermal stability, and the future LLGS switching model.</p>
+            <p>The goal is not to hide behind animations. These graphs show the relationships the Twin uses: exponential barrier sensitivity, TMR contrast, thermal stability, and a schematic LLGS write trajectory.</p>
           </div>
           <div class="math-graph-grid" data-reveal-group>
             <article class="math-graph-card">
@@ -319,20 +320,24 @@
                 <path class="curve red" d="M54 78 C108 96 160 122 214 154 C276 190 334 210 394 218"/>
                 <text x="58" y="42">Δ</text><text x="300" y="244">E / T</text>
               </svg>
-              <code>Δ = Eretention / kBT</code>
+              <code>Δ = E<sub>r</sub> / k<sub>B</sub>T</code>
               <p>Good retention requires the stored state energy barrier to remain large relative to thermal energy.</p>
             </article>
             <article class="math-graph-card">
-              <div class="graph-head"><span>Future switching model</span><strong>LLGS</strong></div>
-              <svg viewBox="0 0 420 260" role="img" aria-label="Magnetization vector precesses and damps toward a stable state">
+              <div class="graph-head"><span>Switching trajectory</span><strong>LLGS</strong></div>
+              <svg viewBox="0 0 420 260" role="img" aria-label="Schematic free-layer mz versus time for an antiparallel to parallel write">
                 <path class="grid" d="M48 28V222M118 28V222M188 28V222M258 28V222M328 28V222M398 28V222M48 222H398M48 174H398M48 126H398M48 78H398M48 30H398"/>
+                <path class="zero-line" d="M48 125H398"/>
                 <path class="axis" d="M48 28V222H398"/>
-                <path class="curve violet" d="M58 128 C92 58 138 210 172 108 C210 18 252 194 288 118 C326 56 354 154 392 102"/>
-                <circle cx="322" cy="96" r="34" class="orbit-ring"/>
-                <text x="58" y="42">m(t)</text><text x="286" y="244">time</text>
+                <path class="axis" d="M48 31H54M48 125H54M48 219H54"/>
+                <path class="curve violet" d="M48.0 219.0 L55.4 216.1 L62.9 215.7 L70.3 217.9 L77.8 219.0 L85.2 219.0 L92.7 219.0 L100.1 217.8 L107.6 215.8 L115.0 215.5 L122.5 216.6 L129.9 217.0 L137.4 215.0 L144.8 210.0 L152.3 202.4 L159.7 192.7 L167.1 180.7 L174.6 165.0 L182.0 145.0 L189.5 117.4 L196.9 85.6 L204.4 68.9 L211.8 63.2 L219.3 59.0 L226.7 50.6 L234.2 39.5 L241.6 31.3 L249.1 31.0 L256.5 32.0 L264.0 34.9 L271.4 35.0 L278.9 32.4 L286.3 31.0 L293.7 31.0 L301.2 31.0 L308.6 31.9 L316.1 32.6 L323.5 31.8 L331.0 31.0 L338.4 31.0 L345.9 31.0 L353.3 31.2 L360.8 31.7 L368.2 31.5 L375.7 31.0 L383.1 31.0 L390.6 31.0 L398.0 31.0"/>
+                <text class="tick" x="10" y="35">+1</text>
+                <text class="tick" x="16" y="129">0</text>
+                <text class="tick" x="10" y="223">−1</text>
+                <text x="58" y="42">m_z</text><text x="318" y="244">time</text>
               </svg>
-              <code>dm/dt = -γm×Heff + αm×dm/dt + τSTT</code>
-              <p>The current page does not solve LLGS yet. It clearly marks this as the next step for realistic switching dynamics.</p>
+              <code>dm/dt = −γ m×H_eff + α m×(dm/dt) + τ_STT</code>
+              <p>Schematic AP→P write: the free layer starts near −1, reverses, and settles near +1. This card is not a computed run. The local Python Twin integrates the actual LLGS.</p>
             </article>
           </div>
         </section>
@@ -436,11 +441,7 @@
         <section class="section dark-band" id="simulation">
           <div class="section-head">
             <div><h2>Simulation</h2></div>
-            <p>The large simulator below is the exact reference demo from the source HTML file, restyled so it sits cleanly inside the SpinVault page. It stays separate from the restored small simulations and the graph cards below.</p>
-          </div>
-          <div class="hero-actions">
-            <a class="btn primary" href="simulator.html">Open Twin simulator</a>
-            <a class="btn" href="digital-twin.html">Open comparison twin</a>
+            <p>Reference demo from the source HTML, restyled to sit inside the SpinVault page.</p>
           </div>
           <div class="exact-simulation-shell">
             <div class="exact-simulation-head">
@@ -448,12 +449,11 @@
                 <span>Reference simulator</span>
                 <strong>Wave view, particle view, and 0/1 controls</strong>
               </div>
-              <p>The embedded app below is the exact simulation from <code>index 2.html</code>. It gives us the same physics-driven interaction and graphs the user asked for, while this page provides the SpinVault branding and supporting copy around it.</p>
             </div>
             <div class="exact-simulation-frame-wrap">
               <iframe
                 class="exact-simulation-frame"
-                src="./index-2-reference.html?v=3#simulation"
+                src="./index-2-reference.html?v=4#simulation"
                 title="SpinVault reference simulation"
                 loading="eager"
                 referrerpolicy="no-referrer"

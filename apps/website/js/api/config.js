@@ -17,11 +17,59 @@ function browserScope() {
 }
 
 /**
+ * @param {string} hostname
+ * @returns {boolean}
+ */
+function isLoopbackHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]" || hostname === "::1";
+}
+
+/**
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isLoopbackApiUrl(url) {
+  try {
+    return isLoopbackHost(new URL(url, "http://127.0.0.1").hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Same-origin /api on a public hostname; local FastAPI on loopback.
+ * @returns {string}
+ */
+export function defaultApiUrlForPage() {
+  try {
+    const location = browserScope().location;
+    const hostname = location?.hostname ?? "";
+    if (hostname && !isLoopbackHost(hostname) && location?.origin) {
+      return location.origin.replace(/\/$/, "");
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_API_URL;
+}
+
+/**
  * @returns {string}
  */
 export function getApiBaseUrl() {
   const scope = browserScope();
-  if (runtimeApiUrl.trim()) return runtimeApiUrl.trim().replace(/\/$/, "");
+  const pageIsPublic = (() => {
+    try {
+      const hostname = scope.location?.hostname ?? "";
+      return Boolean(hostname) && !isLoopbackHost(hostname);
+    } catch {
+      return false;
+    }
+  })();
+  if (runtimeApiUrl.trim()) {
+    const runtime = runtimeApiUrl.trim().replace(/\/$/, "");
+    if (!(pageIsPublic && isLoopbackApiUrl(runtime))) return runtime;
+  }
   try {
     const fromQuery = new URLSearchParams(scope.location?.search ?? "").get("api");
     if (fromQuery && fromQuery.trim()) return fromQuery.trim().replace(/\/$/, "");
@@ -30,15 +78,19 @@ export function getApiBaseUrl() {
   }
   try {
     const fromStorage = scope.localStorage?.getItem(API_URL_KEY);
-    if (fromStorage && fromStorage.trim()) return fromStorage.trim().replace(/\/$/, "");
+    if (fromStorage && fromStorage.trim()) {
+      const stored = fromStorage.trim().replace(/\/$/, "");
+      if (!(pageIsPublic && isLoopbackApiUrl(stored))) return stored;
+    }
   } catch {
     // ignore storage access errors
   }
   const fromWindow = scope.SPINVAULT_API_URL;
   if (typeof fromWindow === "string" && fromWindow.trim()) {
-    return fromWindow.trim().replace(/\/$/, "");
+    const windowUrl = fromWindow.trim().replace(/\/$/, "");
+    if (!(pageIsPublic && isLoopbackApiUrl(windowUrl))) return windowUrl;
   }
-  return DEFAULT_API_URL;
+  return defaultApiUrlForPage();
 }
 
 /**

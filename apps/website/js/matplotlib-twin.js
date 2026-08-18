@@ -1,5 +1,7 @@
+import { getApiBaseUrl } from "./api/config.js";
+
 const params = new URLSearchParams(window.location.search);
-const API_BASE = (params.get("api") || "http://127.0.0.1:8001").replace(/\/+$/, "");
+const API_BASE = getApiBaseUrl();
 const API = `${API_BASE}/api`;
 const LAST_JOB_KEY = "spinvault-matplotlib-twin-last-job";
 

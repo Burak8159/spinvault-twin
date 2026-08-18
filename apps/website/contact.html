@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Contact | SpinVault</title>
-    <link rel="stylesheet" href="styles.css?v=spinvault-blueprint-final4-20260728" />
-    <script defer src="script.js?v=spinvault-blueprint-final4-20260728"></script>
+    <link rel="stylesheet" href="styles.css?v=spinvault-contact-20260817" />
+    <script defer src="script.js?v=spinvault-contact-20260817"></script>
   </head>
   <body>
     <div class="page">
@@ -55,6 +55,7 @@
                 <a href="technology.html#modules">Modules</a>
               </div>
             </div>
+            <a href="matplotlib-twin.html">Simulator</a>
             <a class="active" href="contact.html">Contact</a>
             <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle light mode" aria-pressed="false"><span class="toggle-icon toggle-moon">☾</span><span class="toggle-knob"></span><span class="toggle-icon toggle-sun">☀</span></button>
           </nav>
@@ -84,14 +85,20 @@
             </article>
             <article class="contact-card">
               <h3>Message</h3>
-              <div class="field-grid">
-                <div class="field"><label>Name</label><input type="text" placeholder="Your name" /></div>
-                <div class="field"><label>Email</label><input type="email" placeholder="you@example.com" /></div>
-                <div class="field"><label>Reason</label><input type="text" placeholder="Partnership, mentor..." /></div>
-                <div class="field"><label>Topic</label><input type="text" placeholder="Simulation, patent..." /></div>
-              </div>
-              <div class="field" style="margin-top:12px;"><label>Message</label><textarea placeholder="Write your message here"></textarea></div>
-              <div style="margin-top:14px;"><a class="btn primary" href="#" onclick="return false;">Send inquiry</a></div>
+              <form id="sv-contact-form" class="contact-form" novalidate>
+                <input class="contact-honey" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+                <div class="field-grid">
+                  <div class="field"><label for="sv-contact-name">Name</label><input id="sv-contact-name" name="name" type="text" required placeholder="Your name" /></div>
+                  <div class="field"><label for="sv-contact-email">Email</label><input id="sv-contact-email" name="email" type="email" required placeholder="you@example.com" /></div>
+                  <div class="field"><label for="sv-contact-reason">Reason</label><input id="sv-contact-reason" name="reason" type="text" placeholder="Partnership, mentor..." /></div>
+                  <div class="field"><label for="sv-contact-topic">Topic</label><input id="sv-contact-topic" name="topic" type="text" placeholder="Simulation, patent..." /></div>
+                </div>
+                <div class="field" style="margin-top:12px;"><label for="sv-contact-message">Message</label><textarea id="sv-contact-message" name="message" required placeholder="Write your message here"></textarea></div>
+                <div class="contact-form-actions">
+                  <button class="btn primary" type="submit">Send inquiry</button>
+                  <p id="sv-contact-status" class="contact-status" role="status" aria-live="polite"></p>
+                </div>
+              </form>
             </article>
           </div>
         </section>

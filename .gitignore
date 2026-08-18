@@ -16,6 +16,9 @@ venv/
 .env
 .env.*
 
+# Cloudflare tunnel private config (credentials path + tunnel id)
+deploy/cloudflared/config.yml
+
 # Logs
 *.log
 

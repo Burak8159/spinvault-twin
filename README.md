@@ -5,6 +5,8 @@ Digital twin platform for the SpinVault spintronic memory architecture.
 ## Run locally
 
 - Windows 10/11: extract the package and double-click `RUN_ON_WINDOWS.bat`.
+- To publish the same stack at **https://spinvault.biz** from a Windows PC,
+  follow `docs/HOSTING_WINDOWS.md` and double-click `HOST_ON_WINDOWS.bat`.
 - macOS: extract the package and double-click `RUN_ON_MAC.command`, or run
   `scripts/run_local.sh` from Terminal.
 - Linux: run `scripts/run_local.sh`.

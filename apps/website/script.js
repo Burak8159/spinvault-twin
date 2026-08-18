@@ -204,6 +204,9 @@ if (reskinGraphCanvases.length) {
     return { points, hover, effectiveUp, effectiveDown };
   };
 
+  const WAVE_X_MAX_NM = 16;
+  const WAVE_BARRIER = { left: 0.39, right: 0.58 };
+
   const waveSeries = () => {
     const waveUp = Array.from({ length: 180 }, (_, index) => {
       const x = index / 179;
@@ -228,7 +231,8 @@ if (reskinGraphCanvases.length) {
     const { points } = transmissionSeries(hoverRatio);
     const upPath = pathFromPoints(points.map((p) => ({ x: p.e, y: p.up })), xScale, yScale);
     const downPath = pathFromPoints(points.map((p) => ({ x: p.e, y: p.down })), xScale, yScale);
-    const cursorE = ENERGY_MIN + clamp(hoverRatio, 0, 1) * (ENERGY_MAX - ENERGY_MIN);
+    const plotRatio = clamp((hoverRatio * w - margin.left) / plotW, 0, 1);
+    const cursorE = ENERGY_MIN + plotRatio * (ENERGY_MAX - ENERGY_MIN);
     const cursorX = xScale(cursorE);
     const cursorDown = points.reduce((best, point) => (Math.abs(point.e - cursorE) < Math.abs(best.e - cursorE) ? point : best), points[0]);
     const cursorUp = cursorDown;
@@ -319,8 +323,20 @@ if (reskinGraphCanvases.length) {
     const xScale = (x) => margin.left + x * plotW;
     const yScale = (y) => margin.top + (1 - y) * (plotH * 0.78);
     const { waveUp, waveDown } = waveSeries();
-    const barrierLeft = margin.left + 0.39 * plotW;
-    const barrierRight = margin.left + 0.58 * plotW;
+    const plotRatio = clamp((hoverRatio * w - margin.left) / plotW, 0, 1);
+    const xNm = plotRatio * WAVE_X_MAX_NM;
+    const sampleWave = (series) => {
+      const index = plotRatio * (series.length - 1);
+      const lo = Math.floor(index);
+      const hi = Math.min(series.length - 1, lo + 1);
+      const t = index - lo;
+      return series[lo].y * (1 - t) + series[hi].y * t;
+    };
+    const psiUp = sampleWave(waveUp);
+    const psiDown = sampleWave(waveDown);
+    const cursorX = xScale(plotRatio);
+    const barrierLeft = margin.left + WAVE_BARRIER.left * plotW;
+    const barrierRight = margin.left + WAVE_BARRIER.right * plotW;
     const isLight = document.body.classList.contains("light");
     const theme = isLight
       ? {
@@ -369,15 +385,24 @@ if (reskinGraphCanvases.length) {
       return el;
     };
     addText("Electron wavefunction probability density (FMI exchange coupling)", w / 2, 40, theme.title, 18, "middle");
-    addText("m(t)", margin.left + 20, margin.top + 14, theme.ink, 14);
-    addText("time", margin.left + plotW * 0.62, h - 20, theme.ink, 14);
-    addText("Position (nm)", w / 2, h - 20, theme.ink, 14, "middle");
+    addText("Position (nm)", w / 2, h - 22, theme.ink, 14, "middle");
     addText("Probability density |ψ|²", 22, h / 2, theme.ink, 14, "middle").setAttribute("transform", `rotate(-90 22 ${h / 2})`);
+    for (let i = 0; i <= 4; i += 1) {
+      const frac = i / 4;
+      const tickX = margin.left + frac * plotW;
+      const tickNm = frac * WAVE_X_MAX_NM;
+      svg.append(makeSvgEl("line", { x1: tickX, y1: margin.top + plotH, x2: tickX, y2: margin.top + plotH + 6, stroke: theme.axis, "stroke-width": 1.5 }));
+      addText(String(tickNm), tickX, h - 48, theme.muted, 12, "middle");
+    }
     addText("• Barrier region", barrierLeft - 8, margin.top - 10, "#2ca02c", 12);
     addText("─ |ψ↑|² (Spin up)", w - 260, margin.top + 20, "#2e3cff", 14);
     addText("─ |ψ↓|² (Spin down)", w - 260, margin.top + 46, "#ff150f", 14);
     addText("─ barrier (scaled)", w - 260, margin.top + 72, theme.muted, 14);
-    return { svg, hoverText: `x = ${Math.round(clamp(hoverRatio, 0, 1) * 100)}%` };
+    svg.append(makeSvgEl("line", { x1: cursorX, y1: margin.top, x2: cursorX, y2: margin.top + plotH, stroke: "#ffd166", "stroke-width": 1.6, "stroke-dasharray": "8 8" }));
+    return {
+      svg,
+      hoverText: `x = ${xNm.toFixed(2)} nm  |ψ↑|² = ${psiUp.toFixed(3)}  |ψ↓|² = ${psiDown.toFixed(3)}`
+    };
   };
 
   reskinGraphCanvases.forEach((host) => {
@@ -3433,3 +3458,65 @@ document.querySelectorAll("[data-digital-twin]").forEach((twin) => {
   window.addEventListener("spinvault-theme-change", update);
   update();
 });
+
+const contactForm = document.querySelector("#sv-contact-form");
+if (contactForm) {
+  const status = document.querySelector("#sv-contact-status");
+  const submit = contactForm.querySelector("button[type='submit']");
+  const CONTACT_TO = "bataaksu1@gmail.com";
+  const CONTACT_CC = "burakataaksu@spinvault.biz";
+  contactForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (contactForm.website?.value) {
+      return;
+    }
+    if (!contactForm.reportValidity()) {
+      return;
+    }
+    const payload = {
+      name: contactForm.name.value.trim(),
+      email: contactForm.email.value.trim(),
+      reason: contactForm.reason.value.trim(),
+      topic: contactForm.topic.value.trim(),
+      message: contactForm.message.value.trim(),
+      _replyto: contactForm.email.value.trim(),
+      _subject: "SpinVault website inquiry",
+      _template: "table",
+      _captcha: "false",
+      _cc: CONTACT_CC
+    };
+    submit.disabled = true;
+    if (status) {
+      status.dataset.state = "";
+      status.textContent = "Sending…";
+    }
+    try {
+      const response = await fetch(`https://formsubmit.co/ajax/${CONTACT_TO}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.message || "The inquiry could not be sent.");
+      }
+      contactForm.reset();
+      if (status) {
+        status.dataset.state = "ok";
+        status.textContent = result.message?.includes("confirm")
+          ? "Check your inbox to activate email delivery, then send again. After that, inquiries go to both SpinVault addresses."
+          : "Sent. This inquiry was emailed to both SpinVault inboxes.";
+      }
+    } catch (error) {
+      if (status) {
+        status.dataset.state = "error";
+        status.textContent = error instanceof Error ? error.message : "The inquiry could not be sent.";
+      }
+    } finally {
+      submit.disabled = false;
+    }
+  });
+}

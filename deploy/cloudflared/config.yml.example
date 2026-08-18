@@ -1,0 +1,17 @@
+# Copy this file to %USERPROFILE%\.cloudflared\config.yml after:
+#   cloudflared tunnel create spinvault
+#   cloudflared tunnel route dns spinvault spinvault.biz
+#   cloudflared tunnel route dns spinvault www.spinvault.biz
+#
+# Replace the tunnel id and Windows username below.
+# Do not commit the real config.yml; it points at a private credentials file.
+
+tunnel: REPLACE_WITH_TUNNEL_ID
+credentials-file: C:\Users\REPLACE_WINDOWS_USERNAME\.cloudflared\REPLACE_WITH_TUNNEL_ID.json
+
+ingress:
+  - hostname: spinvault.biz
+    service: http://127.0.0.1:4191
+  - hostname: www.spinvault.biz
+    service: http://127.0.0.1:4191
+  - service: http_status:404
