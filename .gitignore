@@ -28,3 +28,6 @@ ml/datasets/
 
 # Rebuildable sendable archives
 *.zip
+
+# Temporary third-party clones
+.tmp-siesta-docs/
