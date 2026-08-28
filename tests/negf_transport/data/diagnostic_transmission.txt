@@ -1,0 +1,14 @@
+# artifact_role: TEST_FIXTURE
+# data_source_kind: SYNTHETIC_TEST_DATA
+# requested_origin_pending_platform: SYNTHETIC_TEST_DATA
+# not: SOFTWARE_DEFAULT
+# not: COMPUTED_TRANSPORT
+# scientific_role: parser integration only; not a physical C-chain result
+# energy_unit: eV
+# transmission_unit: dimensionless
+# spin_representation: unpolarized_scalar
+-1.00 0.25
+-0.50 0.50
+0.00 1.00
+0.50 0.50
+1.00 0.25
