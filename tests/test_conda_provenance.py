@@ -17,6 +17,7 @@ from spinvault.transport.tier2 import (
     Tier2SmokeError,
     probe_siesta_executable,
     probe_tbtrans_executable,
+    tier2_calculation_spec,
 )
 
 
@@ -129,4 +130,26 @@ def test_package_provenance_dependencies_are_deterministic(tmp_path: Path):
         runtime_banner="Siesta V5",
     )
     assert first == second
+
+
+def test_package_provenance_build_change_does_not_alter_calculation_id(tmp_path: Path):
+    env_a = tmp_path / "env_a"
+    env_b = tmp_path / "env_b"
+    siesta_a, _ = _write_fake_conda_env(
+        env_a,
+        package_version="5.4.2",
+        build="nompi_h6c61976_1003",
+    )
+    siesta_b, _ = _write_fake_conda_env(
+        env_b,
+        package_version="5.4.2",
+        build="nompi_h7e5ea38_1003",
+    )
+    info_a = probe_siesta_executable(str(siesta_a))
+    info_b = probe_siesta_executable(str(siesta_b))
+    assert info_a.version == info_b.version == "5.4.2"
+    assert info_a.package_provenance is not None
+    assert info_b.package_provenance is not None
+    assert info_a.package_provenance.package_build != info_b.package_provenance.package_build
+    assert tier2_calculation_spec().calculation_id == tier2_calculation_spec().calculation_id
 

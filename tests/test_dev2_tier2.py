@@ -10,6 +10,7 @@ import pytest
 from spinvault.transport.parsers.api import ParsedTransmission, select_parser
 from spinvault.transport.tier2 import (
     TIER2_BASELINE,
+    TIER2_CALCULATION_ID,
     CChainSmokeExecution,
     ExecutableInfo,
     StageResult,
@@ -18,11 +19,13 @@ from spinvault.transport.tier2 import (
     _siesta_process_succeeded,
     build_cchain_fixture,
     execute_cchain_smoke,
+    new_tier2_run_id,
     parse_siesta_version,
     parse_tbtrans_version,
     probe_siesta_executable,
     probe_tbtrans_executable,
     smoke_report,
+    tier2_calculation_spec,
     tier2_environment_configured,
     write_smoke_report,
 )
@@ -31,6 +34,17 @@ from spinvault.core.taxonomy import ArtifactRole
 
 def test_tier2_baseline_matches_f055273_parent():
     assert TIER2_BASELINE == "f055273f81c1a6fd0543dcb813ce28d57faea763"
+
+
+def test_tier2_calculation_id_is_fixture_scientific_identity():
+    assert tier2_calculation_spec().calculation_id == TIER2_CALCULATION_ID
+
+
+def test_new_tier2_run_ids_are_unique():
+    first = new_tier2_run_id()
+    second = new_tier2_run_id()
+    assert first != second
+    assert first.startswith("tier2.")
 
 
 def test_parse_siesta_version_with_v5_fallback():
@@ -109,6 +123,8 @@ def test_build_cchain_fixture_writes_inputs(tmp_path: Path):
 def test_smoke_report_contains_provenance_fields():
     execution = CChainSmokeExecution(
         workdir=Path("/tmp/work"),
+        calculation_id=TIER2_CALCULATION_ID,
+        run_id="tier2.testrun",
         siesta=ExecutableInfo(
             path="/bin/siesta",
             version="5.0.0",
@@ -146,6 +162,9 @@ def test_smoke_report_contains_provenance_fields():
     )
     report = smoke_report(execution)
     assert report["overall"] == "PASS"
+    assert report["calculation_id"] == TIER2_CALCULATION_ID
+    assert report["run_id"] == "tier2.testrun"
+    assert report["fixture_provenance"]["artifact_role"] == "TEST_FIXTURE"
     assert report["siesta_version"] == "5.0.0"
     assert report["tbtrans_version"] == "4.1.5"
     assert report["siesta_runtime_banner"] == "Siesta 5.0.0"
@@ -210,6 +229,8 @@ def test_execute_cchain_smoke_mocked_happy_path(tmp_path: Path):
         )
 
     assert execution.status == "parsed_fixture"
+    assert execution.calculation_id == TIER2_CALCULATION_ID
+    assert execution.run_id.startswith("tier2.")
     assert execution.transport is not None
     assert execution.transport.solver_method.siesta_version == "5.4.2"
     assert execution.parsed is not None
@@ -250,3 +271,6 @@ def test_execute_cchain_smoke_real_env(tmp_path: Path):
     assert report["tbtrans_package_version"] == "5.4.2"
     assert report["siesta_package_build"] == "nompi_h7e5ea38_1003"
     assert report["tbtrans_package_channel"] == "conda-forge"
+    assert report["calculation_id"] == TIER2_CALCULATION_ID
+    assert report["run_id"] == execution.run_id
+    assert "c_psf_sha256" in report["fixture_provenance"]

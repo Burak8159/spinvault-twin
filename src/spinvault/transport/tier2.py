@@ -7,10 +7,13 @@ import re
 import shutil
 import subprocess
 import time
+import uuid
 from pathlib import Path
 from typing import Callable
 
+from spinvault.core.contracts import CalculationSpec, ZERO_BIAS
 from spinvault.core.identity import sha256_file
+from spinvault.core.taxonomy import ArtifactRole, ParameterOrigin, ParameterStatus
 from spinvault.core.validation import require_executable
 from spinvault.transport.cchain.fdf import write_cchain_job
 from spinvault.transport.cchain.geometry import build_unconnected_device
@@ -28,6 +31,10 @@ from spinvault.transport.conda_provenance import (
 )
 
 TIER2_BASELINE = "f055273f81c1a6fd0543dcb813ce28d57faea763"
+TIER2_CALCULATION_ID = "calc.fixture.cchain.unconnected.0V.tier2"
+C_PSF_SOURCE = (
+    "https://gitlab.com/siesta-project/siesta/-/raw/master/Tests/Pseudos/C.psf"
+)
 
 
 class Tier2SmokeError(RuntimeError):
@@ -59,6 +66,8 @@ class StageResult:
 @dataclass(frozen=True)
 class CChainSmokeExecution:
     workdir: Path
+    calculation_id: str
+    run_id: str
     siesta: ExecutableInfo
     tbtrans: ExecutableInfo
     stages: tuple[StageResult, ...]
@@ -66,6 +75,7 @@ class CChainSmokeExecution:
     parsed: ParsedTransmission | None
     transport: TransportResult | None
     status: str
+    pseudo_path: Path | None = None
 
 
 _SIESTA_VERSION_RE = re.compile(
@@ -144,6 +154,54 @@ def _probe_text(resolved: str) -> str:
     except (OSError, subprocess.TimeoutExpired):
         pass
     return "\n".join(chunk for chunk in chunks if chunk)
+
+
+def tier2_calculation_spec() -> CalculationSpec:
+    device = build_unconnected_device()
+    return CalculationSpec(
+        calculation_id=TIER2_CALCULATION_ID,
+        campaign_id="dev2_tier2_cchain",
+        structure_id=device.record.structure_id,
+        engine="siesta",
+        calculation_type="transiesta_zero_bias",
+        applied_bias=ZERO_BIAS,
+        physics={"soc": False},
+        numerical={},
+        resources={},
+        origin=ParameterOrigin.PROJECT_METHOD,
+        status=ParameterStatus.PROPOSED,
+        artifact_role=ArtifactRole.TEST_FIXTURE,
+    )
+
+
+def new_tier2_run_id() -> str:
+    return f"tier2.{uuid.uuid4().hex}"
+
+
+def fixture_provenance_report(*, pseudo_path: Path | None = None) -> dict[str, str]:
+    from spinvault.transport.cchain.pinning import (
+        TUTORIAL_DOCS_GIT_COMMIT,
+        TUTORIAL_PATH,
+        TUTORIAL_REPO,
+    )
+
+    device = build_unconnected_device()
+    report = {
+        "artifact_role": ArtifactRole.TEST_FIXTURE.value,
+        "geometry_fdf_source": (
+            f"SIESTA documentation repository {TUTORIAL_REPO} "
+            f"at commit {TUTORIAL_DOCS_GIT_COMMIT}, path {TUTORIAL_PATH}"
+        ),
+        "structure_id": device.record.structure_id,
+        "scientific_role": (
+            "software/integration validation only; does not validate production "
+            "SpinVault transport physics"
+        ),
+    }
+    if pseudo_path is not None and pseudo_path.is_file():
+        report["c_psf_source"] = C_PSF_SOURCE
+        report["c_psf_sha256"] = sha256_file(pseudo_path)
+    return report
 
 
 def _runtime_banner(resolved: str, parse_fn: Callable[[str], str | None]) -> str:
@@ -362,6 +420,8 @@ def execute_cchain_smoke(
 
     workdir = workdir.resolve()
     workdir.mkdir(parents=True, exist_ok=True)
+    calculation_id = tier2_calculation_spec().calculation_id
+    run_id = new_tier2_run_id()
     siesta = probe_siesta_executable(siesta_path)
     tbtrans = probe_tbtrans_executable(tbtrans_path)
     require_executable(siesta.path, "siesta")
@@ -371,7 +431,8 @@ def execute_cchain_smoke(
     dirs = CChainWorkdirs.from_root(workdir)
     pseudo_root = Path(pseudo_dir or os.environ.get("SPINVAULT_CCHAIN_PSEUDO_DIR", "")).expanduser()
     pseudo_file = pseudo_root / "C.psf"
-    if pseudo_file.is_file():
+    pseudo_path = pseudo_file if pseudo_file.is_file() else None
+    if pseudo_path is not None:
         for target_dir in (dirs.electrode, dirs.device):
             target_dir.mkdir(parents=True, exist_ok=True)
             target_dir.joinpath("C.psf").write_bytes(pseudo_file.read_bytes())
@@ -408,6 +469,8 @@ def execute_cchain_smoke(
     if not all(stage.succeeded for stage in stages):
         return CChainSmokeExecution(
             workdir=workdir,
+            calculation_id=calculation_id,
+            run_id=run_id,
             siesta=siesta,
             tbtrans=tbtrans,
             stages=tuple(stages),
@@ -415,12 +478,15 @@ def execute_cchain_smoke(
             parsed=None,
             transport=None,
             status="failed",
+            pseudo_path=pseudo_path,
         )
 
     transmission_path = _find_transmission_artifact(workdir)
     if transmission_path is None:
         return CChainSmokeExecution(
             workdir=workdir,
+            calculation_id=calculation_id,
+            run_id=run_id,
             siesta=siesta,
             tbtrans=tbtrans,
             stages=tuple(stages),
@@ -428,6 +494,7 @@ def execute_cchain_smoke(
             parsed=None,
             transport=None,
             status="missing_transmission",
+            pseudo_path=pseudo_path,
         )
 
     parser = select_parser(parser_preference, transmission_path)
@@ -436,11 +503,14 @@ def execute_cchain_smoke(
     transport = build_transport_result(
         parsed,
         device.metadata,
+        run_id=run_id,
         siesta_version=siesta.version,
         tbtrans_version=tbtrans.version,
     )
     return CChainSmokeExecution(
         workdir=workdir,
+        calculation_id=calculation_id,
+        run_id=run_id,
         siesta=siesta,
         tbtrans=tbtrans,
         stages=tuple(stages),
@@ -448,6 +518,7 @@ def execute_cchain_smoke(
         parsed=parsed,
         transport=transport,
         status="parsed_fixture",
+        pseudo_path=pseudo_path,
     )
 
 
@@ -455,6 +526,9 @@ def smoke_report(execution: CChainSmokeExecution) -> dict:
     overall = "PASS" if execution.status == "parsed_fixture" else "FAIL"
     report = {
         "baseline_git_commit": TIER2_BASELINE,
+        "calculation_id": execution.calculation_id,
+        "run_id": execution.run_id,
+        "fixture_provenance": fixture_provenance_report(pseudo_path=execution.pseudo_path),
         "siesta_version": execution.siesta.version,
         "tbtrans_version": execution.tbtrans.version,
         "siesta_runtime_banner": execution.siesta.runtime_banner,
