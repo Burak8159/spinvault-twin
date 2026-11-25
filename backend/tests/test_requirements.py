@@ -37,3 +37,17 @@ def test_boundary_and_identity():
     assert evaluate_requirement(req,obs)['verdict'] == 'PASS'
     del req['id']
     assert evaluate_requirement(req,obs)['verdict'] == 'NOT_EVALUATED'
+
+
+def test_uncertainty_crossing_target_does_not_false_pass():
+    req, obs = sample(); obs.update(value=9e-7,uncertainty=2e-7)
+    assert evaluate_requirement(req,obs)['verdict']=='NOT_EVALUATED'
+    obs.update(value=5e-7,uncertainty=1e-7)
+    assert evaluate_requirement(req,obs)['verdict']=='PASS'
+    obs.update(value=2e-6,uncertainty=1e-7)
+    assert evaluate_requirement(req,obs)['verdict']=='FAIL'
+
+
+def test_invalid_uncertainty_rejected():
+    req, obs=sample();obs['uncertainty']=-1
+    assert evaluate_requirement(req,obs)['verdict']=='NOT_EVALUATED'

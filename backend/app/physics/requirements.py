@@ -52,4 +52,23 @@ def evaluate_requirement(requirement: dict[str, Any], observation: dict[str, Any
                    ">=": value >= target, ">": value > target, "abs<": abs(value) < target}
     if op not in comparisons:
         return unknown("Comparator is unsupported or missing")
-    return {**result, "verdict": "PASS" if comparisons[op] else "FAIL", "reason": "Comparable qualified observation"}
+    uncertainty = observation.get("uncertainty")
+    if uncertainty is not None:
+        if not _number(uncertainty) or uncertainty < 0:
+            return unknown("Observation uncertainty is invalid")
+        low, high = value - uncertainty, value + uncertainty
+        if not math.isfinite(low) or not math.isfinite(high):
+            return unknown("Observation uncertainty interval is non-finite")
+        if op == "abs<":
+            minimum = 0 if low <= 0 <= high else min(abs(low), abs(high))
+            maximum = max(abs(low), abs(high))
+            verdict = "PASS" if maximum < target else "FAIL" if minimum >= target else "NOT_EVALUATED"
+        elif op == "==":
+            verdict = "PASS" if low == high == target else "FAIL" if target < low or target > high else "NOT_EVALUATED"
+        else:
+            compare = {"<": lambda x: x < target, "<=": lambda x: x <= target,
+                       ">": lambda x: x > target, ">=": lambda x: x >= target}[op]
+            outcomes = [compare(low), compare(high)]
+            verdict = "PASS" if all(outcomes) else "FAIL" if not any(outcomes) else "NOT_EVALUATED"
+        return {**result, "verdict": verdict, "reason": "Uncertainty interval crosses target" if verdict == "NOT_EVALUATED" else "Qualified observation interval", "interval": {"low": low, "high": high, "unit": requirement["unit"]}}
+    return {**result, "verdict": "PASS" if comparisons[op] else "FAIL", "reason": "Comparable qualified observation; uncertainty not supplied"}
