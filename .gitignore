@@ -28,3 +28,6 @@ ml/datasets/
 
 # Rebuildable sendable archives
 *.zip
+
+# Private local project and job storage
+backend/data/

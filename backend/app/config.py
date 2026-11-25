@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     # "memory" | "json"
     job_store: str = "memory"
     data_dir: Path = BACKEND_ROOT / "data" / "jobs"
+    requirements_db: Path = BACKEND_ROOT / "data" / "requirements.sqlite"
 
     # MuMax3: read MUMAX3_* without requiring the SPINVAULT_ prefix.
     mumax3_binary: str | None = Field(

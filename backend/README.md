@@ -120,7 +120,7 @@ The local app accepts the default preview origins and the configured `SPINVAULT_
 
 ### Requirements workspace
 
-Open `/requirements.html` on the local website. Set `SPINVAULT_REQUIREMENTS_DB` to the SQLite file used for project requirements. The UI supports immutable revisions, an expected-revision conflict check, project load/save, and JSON export. Browser-only save is also available. A missing project-store configuration is reported rather than silently storing data in an unexpected directory.
+Open `/requirements.html` on the local website. Project requirements default to `backend/data/requirements.sqlite`; set `SPINVAULT_REQUIREMENTS_DB` to choose another location. The UI supports immutable revisions, an expected-revision conflict check, project load/save, and JSON export. Browser-only save is also available. The default storage location is explicit and separate from the evidence directory.
 
 Evidence evaluation additionally requires `SPINVAULT_REQUIREMENT_EVIDENCE_ROOT`, outside the public website tree. Each `ID.json` names a relative JSON observation, its SHA-256, and a review object with `status`, `reviewer`, and `evidence_ref`. The observation supplies metric, value, unit and structured operating conditions. Qualification derives from the stored review; a caller cannot supply it in the evaluation request. Review records must be controlled by the local administrator. Hash verification establishes consistency with those records, not reviewer authentication or scientific validity. Evidence JSON is bounded to 1 MiB per file.
 

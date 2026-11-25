@@ -19,6 +19,8 @@ class RequirementStore:
         return sqlite3.connect(str(self.path), timeout=10)
     @staticmethod
     def record(row):
+        if hashlib.sha256(row[2].encode()).hexdigest() != row[3]:
+            raise ValueError('Stored requirement content does not match its hash')
         return {'id':row[0], 'revision':row[1], 'requirement':json.loads(row[2]), 'sha256':row[3], 'created_at':row[4]}
     def save(self, requirement, expected_revision):
         content=json.dumps(requirement, sort_keys=True, separators=(',', ':'), allow_nan=False)

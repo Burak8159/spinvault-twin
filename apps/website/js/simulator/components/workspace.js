@@ -96,6 +96,8 @@ function uid(prefix) {
  * @param {ReturnType<import("../lib/store").createSimulatorStore>} store
  */
 export function mountSimulatorWorkspace(store) {
+  const requirementsLink = document.getElementById("sv-requirements-link");
+  if (requirementsLink instanceof HTMLAnchorElement) requirementsLink.href = `requirements.html?api=${encodeURIComponent(getApiBaseUrl())}`;
   const root = requireEl("sv-workspace");
   const svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ (requireEl("sv-viewport-svg")));
   const inspectReadout = document.getElementById("sv-inspect-readout");
@@ -1429,6 +1431,7 @@ export function mountSimulatorWorkspace(store) {
   });
   requireEl("sv-settings-save").addEventListener("click", () => {
     const url = setApiBaseUrl(apiUrlInput.value);
+    if (requirementsLink instanceof HTMLAnchorElement) requirementsLink.href = `requirements.html?api=${encodeURIComponent(url)}`;
     const mode = setDemoExecutionMode(/** @type {"local" | "backend"} */ (demoModeSelect.value));
     settingsStatus.textContent = `Saved. API=${url}; demo=${mode}.`;
     log("info", `Connection settings saved. API=${url}; demo execution=${mode}.`);

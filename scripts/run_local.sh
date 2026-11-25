@@ -105,6 +105,7 @@ cat <<EOF
 
     matplotlib Twin   http://$HOST:$WEB_PORT/matplotlib-twin.html?api=http://$HOST:$API_PORT
     simulator         http://$HOST:$WEB_PORT/simulator.html?api=http://$HOST:$API_PORT
+    requirements      http://$HOST:$WEB_PORT/requirements.html?api=http://$HOST:$API_PORT
     retention plots   http://$HOST:$WEB_PORT/retention-leakage.html
     website           http://$HOST:$WEB_PORT/index.html
     API health        http://$HOST:$API_PORT/health
@@ -118,7 +119,7 @@ cat <<EOF
 
 EOF
 
-if command -v open >/dev/null 2>&1; then
+if [ "${SPINVAULT_NO_BROWSER:-false}" != "true" ] && command -v open >/dev/null 2>&1; then
   open "http://$HOST:$WEB_PORT/matplotlib-twin.html?api=http://$HOST:$API_PORT"
 fi
 
