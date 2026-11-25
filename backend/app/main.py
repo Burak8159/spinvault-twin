@@ -4,19 +4,29 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.datastructures import Headers
 
 from app.api.deps import start_background_worker, stop_background_worker
 from app.api.routes import router as simulations_router
 from app.config import get_settings
+from app.api.requirements import router as requirements_router
 
 
-class PrivateNetworkCorsMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        if request.headers.get("access-control-request-private-network") == "true":
+class PrivateNetworkCorsMiddleware(CORSMiddleware):
+    """Allow private-network preflights only after ordinary CORS succeeds.
+
+    Strip the extension header for the base implementation so this behaves
+    consistently across Starlette versions with and without native PNA support.
+    """
+
+    def preflight_response(self, request_headers: Headers):
+        private_network = request_headers.get("access-control-request-private-network") == "true"
+        filtered = Headers(raw=[(key, value) for key, value in request_headers.raw
+                                if key.lower() != b"access-control-request-private-network"])
+        response = super().preflight_response(filtered)
+        if private_network and response.status_code == 200:
             response.headers["Access-Control-Allow-Private-Network"] = "true"
         return response
 
@@ -46,17 +56,14 @@ def create_app() -> FastAPI:
         ),
     )
     app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=(
-            r"^(https?://(127\.0\.0\.1|localhost):\d+"
-            r"|https://(www\.)?spinvault\.biz)$"
-        ),
+        PrivateNetworkCorsMiddleware,
+        allow_origins=settings.normalized_cors_origins,
         allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.add_middleware(PrivateNetworkCorsMiddleware)
     app.include_router(simulations_router, prefix="/api")
+    app.include_router(requirements_router, prefix="/api")
 
     @app.get("/health")
     def health() -> dict[str, object]:

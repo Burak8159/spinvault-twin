@@ -105,3 +105,23 @@ MuMax3 execution and GPU detection are mocked in unit tests. A real binary / NVI
 - Run metrics use `cuda` / `rtx` only when MuMax3 stdout/stderr show GPU/CUDA evidence; otherwise run acceleration stays `not_configured`.
 - Free-layer MuMax3 kinds (`v0`, `v0_visible`, `switching_v1`) do not solve MgO, reference-layer dynamics, tunneling, TMR, resistance, retention, or STT/SOT. `v0_visible` only changes request m0/Bext/time. `switching_v1` adds validated `Ku1`/`anisU`, an explicit pinned direction, P/AP state presets, and a field pulse; switching is classified from raw mean-m tables with an honest static/no-switch report when the threshold is not met.
 - Unsupported fields (e.g. current density without a mapped torque model) are omitted from scripts and surfaced as warnings. Anisotropy without `Ku1` remains unused outside `switching_v1`.
+
+### Reproduce the qualified macOS Python 3.11 environment
+
+The following constraints record the dependency versions used in the November 2026 macOS arm64 verification. They are not a cross-platform lockfile, do not include package hashes, and should be requalified when updated.
+
+```bash
+python3.11 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt -c constraints-macos-arm64-py311.txt
+.venv/bin/python -m pytest tests -q -rs
+```
+
+The local app accepts the default preview origins and the configured `SPINVAULT_WEB_PORT`. `SPINVAULT_CORS_ORIGINS` replaces the default list with a comma-separated list. Direct `file://` pages (`Origin: null`) are not allowed by default; use the local website server. The SpinVault public website origins are included in the default list; override the list to limit access to local origins if required.
+
+### Requirements workspace
+
+Open `/requirements.html` on the local website. Set `SPINVAULT_REQUIREMENTS_DB` to the SQLite file used for project requirements. The UI supports immutable revisions, an expected-revision conflict check, project load/save, and JSON export. Browser-only save is also available. A missing project-store configuration is reported rather than silently storing data in an unexpected directory.
+
+Evidence evaluation additionally requires `SPINVAULT_REQUIREMENT_EVIDENCE_ROOT`, outside the public website tree. Each `ID.json` names a relative JSON observation, its SHA-256, and a review object with `status`, `reviewer`, and `evidence_ref`. The observation supplies metric, value, unit and structured operating conditions. Qualification derives from the stored review; a caller cannot supply it in the evaluation request. Review records must be controlled by the local administrator. Hash verification establishes consistency with those records, not reviewer authentication or scientific validity. Evidence JSON is bounded to 1 MiB per file.
+
+Do not expose these local administrative functions or private evidence on a public server without deployment authentication, permissions and review controls. The current release is qualified only for the tested local workflows.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+import os
 from pathlib import Path
 
 from pydantic import AliasChoices, Field
@@ -26,8 +27,17 @@ DEFAULT_CORS_ORIGINS = [
     "http://localhost:4210",
     "http://127.0.0.1:5500",
     "http://localhost:5500",
-    "null",  # file:// origin for some local static servers
+    "https://spinvault.biz",
+    "https://www.spinvault.biz",
 ]
+
+
+def default_cors_origins() -> str:
+    origins = list(DEFAULT_CORS_ORIGINS)
+    port = os.getenv("SPINVAULT_WEB_PORT", "")
+    if port.isascii() and port.isdigit() and 1 <= int(port) <= 65535:
+        origins.extend([f"http://127.0.0.1:{int(port)}", f"http://localhost:{int(port)}"])
+    return ",".join(origins)
 
 
 class Settings(BaseSettings):
@@ -41,7 +51,7 @@ class Settings(BaseSettings):
     app_name: str = "SpinVault Twin API"
     app_version: str = "0.4.0"
     # Development origins only by default. Override via SPINVAULT_CORS_ORIGINS.
-    cors_origins: str = Field(default_factory=lambda: ",".join(DEFAULT_CORS_ORIGINS))
+    cors_origins: str = Field(default_factory=default_cors_origins)
     # "memory" | "json"
     job_store: str = "memory"
     data_dir: Path = BACKEND_ROOT / "data" / "jobs"
