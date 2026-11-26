@@ -248,6 +248,33 @@ $('archive-import').onclick = async () => {
     await $('structure-refresh').onclick();
   } catch (error) { status.textContent = error.message; }
 };
+function renderStructureSummary(envelope) {
+  const record = envelope.record;
+  const composition = record.metadata?.species_counts || {};
+  const regions = record.atoms.reduce((counts, atom) => {
+    const region = atom.region || 'Unassigned'; counts[region] = (counts[region] || 0) + 1; return counts;
+  }, {});
+  const cell = record.lattice_vectors_angstrom.map(vector => vector.map(value => Number(value).toFixed(4)).join(', ')).join(' | ');
+  const seeds = Object.entries(record.initial_spin_by_species || {}).map(([species, value]) => `${species}: ${value}`).join(' · ') || 'Not specified';
+  const sourceHash = record.source_refs.find(reference => reference.startsWith('catalog_sha256='))?.slice('catalog_sha256='.length) || 'Not available';
+  const rows = [
+    ['Atoms', String(record.atom_count)],
+    ['Composition', Object.entries(composition).map(([species, count]) => `${species} ${count}`).join(' · ') || 'Not specified'],
+    ['Regions', Object.entries(regions).map(([region, count]) => `${region} ${count}`).join(' · ')],
+    ['Source state', record.source_status],
+    ['Transport', record.transport_validated ? 'Validated in source record' : 'Not validated'],
+    ['Magnetic label', record.magnetic_label],
+    ['Initial spin seeds', seeds],
+    ['Cell vectors (Å)', cell],
+    ['Catalog SHA-256', sourceHash]
+  ];
+  const summary = $('structure-summary'); summary.replaceChildren();
+  for (const [label, value] of rows) {
+    const term = document.createElement('dt'); term.textContent = label;
+    const description = document.createElement('dd'); description.textContent = value;
+    summary.append(term, description);
+  }
+}
 $('structure-import').onclick = async () => {
   const status = $('structure-status'); status.textContent = 'Validating source structure…';
   try {
@@ -260,7 +287,7 @@ $('structure-import').onclick = async () => {
     const saved = await request('/api/project-records/import-qe-structure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({catalog_json:rawText,filename:file.name})});
     status.textContent = `Saved ${saved.record.id} revision ${saved.revision}; ${saved.record.atom_count} atoms; source state ${saved.record.source_status}; transport remains unvalidated. Catalog JSON SHA-256 ${catalogDigest}.`;
     $('structure-detail-summary').textContent = `${saved.record.id} · revision ${saved.revision} · ${saved.record.atom_count} atoms · ${saved.record.source_status} · transport not validated.`;
-    $('structure-detail').textContent = JSON.stringify(saved,null,2); $('structure-json-details').open = false;
+    renderStructureSummary(saved); $('structure-detail').textContent = JSON.stringify(saved,null,2); $('structure-json-details').open = false;
     await $('structure-refresh').onclick();
   } catch (error) { status.textContent = error.message; }
 };
@@ -283,7 +310,7 @@ $('structure-refresh').onclick = async () => {
       const li = document.createElement('li'); const label = document.createElement('span');
       label.textContent = `${item.id} · r${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status} · transport ${item.record.transport_validated ? 'validated' : 'not validated'} `;
       const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Inspect record';
-      button.addEventListener('click',async()=>{try{const detail=await request(`/api/project-records/structure/${encodeURIComponent(item.id)}?revision=${item.revision}`);$('structure-detail-summary').textContent=`${item.id} · revision ${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status} · transport ${item.record.transport_validated?'validated':'not validated'}.`;$('structure-detail').textContent=JSON.stringify(detail,null,2);$('structure-json-details').open=true;}catch(error){status.textContent=error.message;}});
+      button.addEventListener('click',async()=>{try{const detail=await request(`/api/project-records/structure/${encodeURIComponent(item.id)}?revision=${item.revision}`);$('structure-detail-summary').textContent=`${item.id} · revision ${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status} · transport ${item.record.transport_validated?'validated':'not validated'}.`;renderStructureSummary(detail);$('structure-detail').textContent=JSON.stringify(detail,null,2);$('structure-json-details').open=false;}catch(error){status.textContent=error.message;}});
       li.append(label,button); list.append(li);
     }
     if (!list.children.length) { const empty=document.createElement('li'); empty.textContent='No saved structure records.'; list.append(empty); }

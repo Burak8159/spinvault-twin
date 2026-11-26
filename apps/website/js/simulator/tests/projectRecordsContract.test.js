@@ -25,8 +25,17 @@ test('study structure selection records an exact revision and imports its packag
 test('structure inspection keeps long atom tables collapsed until explicitly requested', () => {
   assert.match(html, /<details id="structure-json-details">/);
   assert.match(html, /summary>View full structure record JSON/);
-  assert.match(script, /structure-json-details'\)\.open\s*=\s*true/);
   assert.match(script, /structure-json-details'\)\.open\s*=\s*false/);
+  assert.match(script, /renderStructureSummary\(detail\)/);
+  assert.match(script, /summary\.append\(term, description\)/);
+});
+
+test('structure overview exposes source state and provenance without deriving acceptance', () => {
+  assert.match(html, /id="structure-summary"/);
+  assert.match(script, /\['Source state', record\.source_status\]/);
+  assert.match(script, /\['Transport', record\.transport_validated \? 'Validated in source record' : 'Not validated'\]/);
+  assert.match(script, /catalog_sha256=/);
+  assert.match(script, /description\.textContent = value/);
 });
 
 test('structure refresh renders the records returned by the API', () => {
