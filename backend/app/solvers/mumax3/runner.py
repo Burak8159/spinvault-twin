@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -24,28 +26,104 @@ class SolverRunResult:
     stdout_path: Path
     stderr_path: Path
     version: str | None = None
+    cancelled: bool = False
 
 
 RunnerFn = Callable[[list[str], Path, float], tuple[int, bool, str, str]]
+CANCELLED_RETURN_CODE = 125
 
 
-def default_runner(command: list[str], cwd: Path, timeout: float) -> tuple[int, bool, str, str]:
+def _terminate_process_tree(process: subprocess.Popen[str]) -> tuple[str, str]:
+    """Terminate the solver process group and wait until its leader is reaped."""
+    termination_error = ""
+    if os.name == "nt":
+        try:
+            completed = subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+                shell=False,
+            )
+            if completed.returncode:
+                termination_error = (completed.stderr or completed.stdout or "taskkill failed").strip()
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            termination_error = f"taskkill error: {exc}"
+        if process.poll() is None:
+            process.kill()
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        except OSError as exc:
+            termination_error = f"process-group SIGTERM error: {exc}"
+            if process.poll() is None:
+                process.terminate()
     try:
-        completed = subprocess.run(
+        stdout, stderr = process.communicate(timeout=2)
+        return stdout or "", (stderr or "") + (f"\n{termination_error}" if termination_error else "")
+    except subprocess.TimeoutExpired:
+        if os.name == "nt":
+            process.kill()
+        else:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            except OSError:
+                process.kill()
+        stdout, stderr = process.communicate()
+        return stdout or "", (stderr or "") + (f"\n{termination_error}" if termination_error else "")
+
+
+def default_runner(
+    command: list[str],
+    cwd: Path,
+    timeout: float,
+    *,
+    cancel_check: Callable[[], bool] | None = None,
+) -> tuple[int, bool, str, str]:
+    creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+    try:
+        process = subprocess.Popen(
             command,
             cwd=str(cwd),
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=timeout,
-            check=False,
             shell=False,
+            start_new_session=os.name != "nt",
+            creationflags=creationflags,
         )
-        return completed.returncode, False, completed.stdout or "", completed.stderr or ""
-    except subprocess.TimeoutExpired as exc:
-        stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
-        stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
-        stderr = (stderr + "\nMuMax3 execution timed out.").strip()
-        return 124, True, stdout, stderr
+    except OSError:
+        raise
+
+    deadline = time.monotonic() + timeout
+    while True:
+        if process.poll() is not None:
+            try:
+                completed_stdout, completed_stderr = process.communicate(timeout=0.1)
+                return process.returncode, False, completed_stdout or "", completed_stderr or ""
+            except subprocess.TimeoutExpired:
+                # A descendant may still hold inherited pipes; cancellation/timeout
+                # below can still terminate the process group before final collection.
+                pass
+        if cancel_check is not None and cancel_check():
+            stdout, stderr = _terminate_process_tree(process)
+            stderr = (stderr + "\nMuMax3 execution cancelled; process tree termination was requested and leader exit confirmed.").strip()
+            return CANCELLED_RETURN_CODE, False, stdout, stderr
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            stdout, stderr = _terminate_process_tree(process)
+            stderr = (stderr + "\nMuMax3 execution timed out; process tree termination was requested and leader exit confirmed.").strip()
+            return 124, True, stdout, stderr
+        try:
+            completed_stdout, completed_stderr = process.communicate(timeout=min(0.1, remaining))
+            return process.returncode, False, completed_stdout or "", completed_stderr or ""
+        except subprocess.TimeoutExpired:
+            continue
 
 
 def probe_mumax3_version(binary: Path, runner: RunnerFn | None = None) -> str | None:
@@ -126,12 +204,19 @@ def run_mumax3(
     timeout_seconds: int,
     runner: RunnerFn | None = None,
     version: str | None = None,
+    cancel_check: Callable[[], bool] | None = None,
 ) -> SolverRunResult:
-    run = runner or default_runner
     started = utc_now()
     # mumax3 writes next to the script; run with script path relative to job_dir.
     command = [str(binary), prepared.script_path.name]
-    code, timed_out, stdout, stderr = run(command, prepared.job_dir, float(timeout_seconds))
+    if runner is None:
+        code, timed_out, stdout, stderr = default_runner(
+            command, prepared.job_dir, float(timeout_seconds), cancel_check=cancel_check
+        )
+    else:
+        # Existing injected runners keep the stable 3-argument test/integration contract.
+        code, timed_out, stdout, stderr = runner(command, prepared.job_dir, float(timeout_seconds))
+    cancelled = code == CANCELLED_RETURN_CODE and not timed_out
     ended = utc_now()
 
     stdout_path = prepared.job_dir / "stdout.log"
@@ -153,6 +238,7 @@ def run_mumax3(
                 "endedAt": ended.isoformat(),
                 "returnCode": code,
                 "timedOut": timed_out,
+                "cancelled": cancelled,
                 "success": code == 0 and not timed_out,
                 "parserVersion": "mumax3-parser-v1",
             },
@@ -180,4 +266,5 @@ def run_mumax3(
         stdout_path=stdout_path,
         stderr_path=stderr_path,
         version=version,
+        cancelled=cancelled,
     )

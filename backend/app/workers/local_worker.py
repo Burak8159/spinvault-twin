@@ -361,7 +361,12 @@ class LocalWorker:
             prepared = self.adapter.prepare(job.request, job_id=job.job_id)
 
             job = checkpoint("running_solver", "Executing MuMax3 subprocess.")
-            run_result = self.adapter.run(prepared)
+            run_result = self.adapter.run(
+                prepared,
+                cancel_check=lambda: self.queue.is_cancelled(job.job_id),
+            )
+            if run_result.cancelled:
+                raise RuntimeError("__cancelled__")
             success = run_result.returncode == 0 and not run_result.timed_out
             stdout_text = (
                 (prepared.job_dir / "stdout.log").read_text(encoding="utf-8", errors="replace")

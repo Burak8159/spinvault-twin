@@ -65,9 +65,14 @@ their jobs. A job already claimed by a worker is deliberately not retried
 automatically after a process crash, because solver files may be partial and
 automatic retry could duplicate computation. On startup, a claim is marked
 `interrupted` only after its same-host owner PID is confirmed absent; unknown
-hosts and permission-denied PID checks are left untouched. Inspect artifacts and
-confirm the solver has exited before a deliberate retry. This is not process
-termination supervision. The SQLite mode has not yet been qualified for
+hosts and permission-denied PID checks are left untouched. During a managed
+MuMax3 run, cancellation and timeout request termination of the solver process
+group and wait for the group leader to exit before the worker returns; cancellation
+is recorded as `cancelled`, while timeout is `failed`. POSIX process-group
+termination is covered by a local fake-solver test; the Windows `taskkill /T`
+path is implemented but was not exercised here. If the worker itself crashes,
+the child solver may outlive it; inspect artifacts and confirm solver exit before
+a deliberate retry. The SQLite mode has not yet been qualified for
 multi-host production deployment or disaster recovery.
 
 ## MuMax3 on a configured host (e.g. Windows + CUDA)
