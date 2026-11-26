@@ -15,6 +15,11 @@ used by the default Twin.
 - Windows 10/11, or macOS
 - Network once for the first `pip install` of backend dependencies
 
+On Apple silicon, the macOS launcher prefers Python 3.11 for a fresh
+environment and verifies package hashes using the included platform lock. Other
+platforms currently use the declared minimum dependency requirements and have
+not passed a clean-install qualification.
+
 ## Start on Windows
 
 1. Extract the zip completely (do not run it from inside the zip).
@@ -53,6 +58,13 @@ Default ports are website **4191** and API **8001**. Both launchers open:
 - Retention + leakage figures: http://127.0.0.1:4191/retention-leakage.html
 - Website: http://127.0.0.1:4191/index.html
 - API docs: http://127.0.0.1:8001/docs
+- Requirements and evidence: http://127.0.0.1:4191/requirements.html
+- Versioned device and study records: http://127.0.0.1:4191/project_records.html
+
+Evidence comparisons require operator-configured evidence storage, an acceptance
+policy, and a review-signing key. Without a valid signed review and verified
+source data, observations remain `NOT_EVALUATED`; configuring the workspace does
+not certify a physical model. See `backend/README.md` for setup details.
 
 The matplotlib Twin lets you edit free-layer geometry, material constants, LLGS
 drive, and barrier parameters. Its spatial maps come from computed mesh frames;
