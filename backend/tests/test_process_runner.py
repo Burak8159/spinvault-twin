@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import os
+import select
+import signal
+import subprocess
 import sys
 import threading
 import time
@@ -14,10 +17,13 @@ from app.models.jobs import JobRecord
 from app.models.provenance import Provenance, utc_now
 from app.models.simulation import SimulationRequest
 from app.storage.memory_store import InMemoryJobStore
+from app.storage.sqlite_store import SQLiteJobStore
 from app.workers.gpu import detect_gpu
 from app.workers.local_worker import LocalWorker
 from app.workers.queue import InMemorySimulationQueue
 from app.workers.process_check import process_is_alive
+from app.workers.recovery import reconcile_interrupted_jobs
+from app.workers.sqlite_queue import SQLiteSimulationQueue
 from tests.conftest import sample_mumax_payload
 
 
@@ -139,3 +145,80 @@ def test_worker_cancel_during_solver_run_waits_for_process_exit(tmp_path: Path) 
     assert cancelled is not None and cancelled.status == "cancelled"
     assert "cancelled" in (settings.job_root / job.job_id / "stderr.log").read_text().lower()
     assert not queue.is_cancelled(job.job_id)
+
+
+def test_recovery_waits_for_solver_after_worker_process_crash(tmp_path: Path) -> None:
+    if os.name == "nt":
+        pytest.skip("POSIX worker-kill/process-group integration fixture")
+    database = tmp_path / "crash-recovery.sqlite3"
+    store = SQLiteJobStore(database)
+    queue = SQLiteSimulationQueue(database)
+    job = JobRecord(
+        job_id="worker-crash-with-live-solver",
+        scenario_id="crash-fixture",
+        title="Process recovery fixture",
+        requested_solver="mumax3",
+        status="running_solver",
+        progress_phase="running_solver",
+        created_at=utc_now(),
+        updated_at=utc_now(),
+        provenance=Provenance(created_by="system", solver="mumax3"),
+    )
+    store.create(job)
+    queue.enqueue(job.job_id)
+    child_code = (
+        "import pathlib,sys; "
+        "from app.workers.sqlite_queue import SQLiteSimulationQueue; "
+        "from app.solvers.mumax3.runner import default_runner; "
+        "from pathlib import Path; "
+        "q=SQLiteSimulationQueue(Path(sys.argv[1])); job=q.claim_next(); "
+        "print('WORKER_READY='+str(job),flush=True); "
+        "callback=lambda pid:(q.record_solver_process(job,pid),print('SOLVER_PID='+str(pid),flush=True)); "
+        "default_runner([sys.executable,'-c','import time; time.sleep(60)'],Path.cwd(),60,on_process_started=callback)"
+    )
+    worker_process = subprocess.Popen(
+        [sys.executable, "-c", child_code, str(database)],
+        cwd=Path(__file__).resolve().parents[1],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    solver_pid: int | None = None
+    try:
+        assert worker_process.stdout is not None
+        deadline = time.monotonic() + 8
+        while time.monotonic() < deadline:
+            readable, _, _ = select.select([worker_process.stdout], [], [], 0.1)
+            if not readable:
+                if worker_process.poll() is not None:
+                    stderr = worker_process.stderr.read() if worker_process.stderr else ""
+                    pytest.fail(f"worker fixture ended before solver launch: {stderr}")
+                continue
+            line = worker_process.stdout.readline()
+            if line.startswith("SOLVER_PID="):
+                solver_pid = int(line.split("=", 1)[1])
+                break
+        assert solver_pid is not None, "worker fixture did not publish the child solver PID"
+
+        worker_process.kill()
+        worker_process.wait(timeout=5)
+        assert process_is_alive(solver_pid)
+        assert reconcile_interrupted_jobs(SQLiteJobStore(database), SQLiteSimulationQueue(database)) == []
+        assert SQLiteJobStore(database).get(job.job_id).status == "running_solver"  # type: ignore[union-attr]
+
+        os.killpg(solver_pid, signal.SIGTERM)
+        deadline = time.monotonic() + 3
+        while process_is_alive(solver_pid) and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert not process_is_alive(solver_pid)
+        assert reconcile_interrupted_jobs(SQLiteJobStore(database), SQLiteSimulationQueue(database)) == [job.job_id]
+        assert SQLiteJobStore(database).get(job.job_id).status == "interrupted"  # type: ignore[union-attr]
+    finally:
+        if worker_process.poll() is None:
+            worker_process.kill()
+            worker_process.wait(timeout=5)
+        if solver_pid is not None and process_is_alive(solver_pid):
+            try:
+                os.killpg(solver_pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
