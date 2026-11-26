@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import sqlite3
 
 import pytest
@@ -8,14 +9,14 @@ from app.services.project_record_store import ProjectRecordConflict, ProjectReco
 
 def device_record(identifier="stack-alpha"):
     return {"schema_version": "1.0", "record_type": "device", "id": identifier,
-            "title": "Unratified research stack", "source_refs": ["owner-supplied draft"],
+            "title": "Synthetic unratified stack", "source_refs": ["synthetic fixture"],
             "metadata": {"scientific_status": "draft"},
             "layers": [
-                {"id": "bottom-electrode", "name": "CFAS", "material_ref": None,
-                 "thickness": {"value": None, "unit": None, "missing_reason": "Exact composition and thickness are not ratified"},
+                {"id": "layer-a", "name": "Layer A", "material_ref": None,
+                 "thickness": {"value": None, "unit": None, "missing_reason": "Synthetic unresolved thickness"},
                  "magnetic_role": None, "status": "unresolved", "source_refs": []},
-                {"id": "barrier", "name": "oxide barrier", "material_ref": None,
-                 "thickness": {"value": None, "unit": None, "missing_reason": "Phase and measured thickness are unresolved"},
+                {"id": "layer-b", "name": "Layer B", "material_ref": None,
+                 "thickness": {"value": None, "unit": None, "missing_reason": "Synthetic unresolved thickness"},
                  "magnetic_role": None, "status": "unresolved", "source_refs": []}],
             "lateral_dimensions": {}, "operating_domain": {}}
 
@@ -75,7 +76,7 @@ def test_study_requires_exact_device_revision_and_export_import_round_trip(tmp_p
     study = {"schema_version": "1.0", "record_type": "study", "id": "roundtrip-study",
              "title": "Study package", "source_refs": [], "metadata": {},
              "device_id": "roundtrip-stack", "device_revision": device["revision"],
-             "scientific_question": "Record a future study", "method": "unspecified pending selection",
+             "scientific_question": "Does the synthetic fixture preserve linked revisions?", "method": "synthetic test method",
              "parameter_set": {}, "status": "draft"}
     with pytest.raises(ValueError, match="existing immutable device revision"):
         source.save("study", {**study, "device_revision": 9}, 0)
@@ -112,3 +113,49 @@ def test_project_record_api_roundtrip(client, tmp_path, monkeypatch):
     assert imported.status_code == 200, imported.json()
     bad = client.post("/api/project-records/device", json={"record": {**payload, "id": "bad/id"}, "expected_revision": 0})
     assert bad.status_code == 422
+    study = {"schema_version": "1.0", "record_type": "study", "id": "api-study",
+             "title": "Synthetic API study", "source_refs": [], "metadata": {},
+             "device_id": "api-stack", "device_revision": 1,
+             "scientific_question": "Does the test route preserve the parent?", "method": "synthetic",
+             "parameter_set": {}, "status": "draft"}
+    saved_study = client.post("/api/project-records/study", json={"record": study, "expected_revision": 0})
+    assert saved_study.status_code == 200
+    package = client.get("/api/project-records/study/api-study/package")
+    assert package.status_code == 200 and package.json()["device"]["source_revision"] == 1
+    monkeypatch.setenv("SPINVAULT_PROJECT_RECORDS_DB", str(tmp_path / "package-import.sqlite"))
+    imported_package = client.post("/api/project-records/study-package/import", json={"package": package.json()})
+    assert imported_package.status_code == 200, imported_package.json()
+    assert imported_package.json()["record"]["device_revision"] == 1
+
+
+def test_study_package_preserves_exact_parent_revision_atomically(tmp_path):
+    source = ProjectRecordStore(tmp_path / "source.sqlite")
+    device_v1 = source.save("device", device_record("package-parent"), 0)
+    device_v2_payload = copy.deepcopy(device_v1["record"])
+    device_v2_payload["metadata"]["note"] = "later revision"
+    source.save("device", device_v2_payload, 1)
+    study = {"schema_version": "1.0", "record_type": "study", "id": "package-study",
+             "title": "Synthetic package fixture", "source_refs": [], "metadata": {},
+             "device_id": "package-parent", "device_revision": 1,
+             "scientific_question": "Can this package preserve its exact parent?", "method": "synthetic test",
+             "parameter_set": {}, "status": "draft"}
+    source.save("study", study, 0)
+    package = source.export_study_package("package-study")
+    assert package["device"]["source_revision"] == 1
+    destination = ProjectRecordStore(tmp_path / "destination.sqlite")
+    imported_study = destination.import_study_package(package)
+    assert imported_study["record"]["device_revision"] == 1
+    assert destination.get("device", "package-parent", 1)["sha256"] == device_v1["sha256"]
+    assert destination.get("device", "package-parent", 2) is None
+    with pytest.raises(ProjectRecordConflict):
+        destination.import_study_package(package)
+    assert len(destination.list("device")) == 1 and len(destination.list("study")) == 1
+
+    forged = copy.deepcopy(package)
+    forged["study"]["record"]["device_revision"] = 2
+    forged["study"]["record_sha256"] = hashlib.sha256(
+        source.canonical(forged["study"]["record"]).encode("utf-8")).hexdigest()
+    forged_body = {key: value for key, value in forged.items() if key != "package_sha256"}
+    forged["package_sha256"] = hashlib.sha256(source.canonical(forged_body).encode("utf-8")).hexdigest()
+    with pytest.raises(ValueError, match="exact parent"):
+        ProjectRecordStore(tmp_path / "forged.sqlite").import_study_package(forged)

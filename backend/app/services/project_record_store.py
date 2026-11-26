@@ -94,6 +94,56 @@ class ProjectRecordStore:
         body["bundle_sha256"] = hashlib.sha256(self.canonical(body).encode("utf-8")).hexdigest()
         return body
 
+    def export_study_package(self, identifier, revision=None):
+        study = self.get("study", identifier, revision)
+        if study is None:
+            return None
+        device = self.get("device", study["record"]["device_id"], study["record"]["device_revision"])
+        if device is None:
+            raise ValueError("Study's exact device revision is unavailable")
+        body = {"package_schema_version": "1.0", "package_type": "study_with_device_revision",
+                "device": {"source_revision": device["revision"], "record": device["record"], "record_sha256": device["sha256"]},
+                "study": {"source_revision": study["revision"], "record": study["record"], "record_sha256": study["sha256"]}}
+        body["package_sha256"] = hashlib.sha256(self.canonical(body).encode("utf-8")).hexdigest()
+        return body
+
+    def import_study_package(self, package):
+        if not isinstance(package, dict) or package.get("package_schema_version") != "1.0" or package.get("package_type") != "study_with_device_revision":
+            raise ValueError("Unsupported study package")
+        supplied_hash = package.get("package_sha256")
+        body = {key: value for key, value in package.items() if key != "package_sha256"}
+        if not isinstance(supplied_hash, str) or hashlib.sha256(self.canonical(body).encode("utf-8")).hexdigest() != supplied_hash:
+            raise ValueError("Study package integrity check failed")
+        records = {}
+        for kind in ("device", "study"):
+            item = package.get(kind)
+            if not isinstance(item, dict):
+                raise ValueError(f"Study package is missing its {kind} revision")
+            source_revision = item.get("source_revision")
+            if not isinstance(source_revision, int) or isinstance(source_revision, bool) or source_revision < 1:
+                raise ValueError(f"Study package has an invalid {kind} revision")
+            record = json.loads(self.canonical(RECORD_MODELS[kind].model_validate(item.get("record")).model_dump(mode="json")))
+            digest = hashlib.sha256(self.canonical(record).encode("utf-8")).hexdigest()
+            if digest != item.get("record_sha256"):
+                raise ValueError(f"Study package {kind} hash mismatch")
+            records[kind] = (source_revision, record, digest)
+        device_revision, device, _ = records["device"]
+        study_revision, study, _ = records["study"]
+        if study["device_id"] != device["id"] or study["device_revision"] != device_revision:
+            raise ValueError("Study package does not contain the exact parent device revision")
+        created = datetime.now(timezone.utc).isoformat()
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            for kind, (_, record, _) in records.items():
+                exists = db.execute("SELECT 1 FROM project_record_revisions WHERE record_type=? AND id=? LIMIT 1",
+                                    (kind, record["id"])).fetchone()
+                if exists:
+                    raise ProjectRecordConflict(f"Study package {kind} ID already exists; nothing was imported")
+            for kind, (source_revision, record, digest) in records.items():
+                db.execute("INSERT INTO project_record_revisions VALUES(?,?,?,?,?,?)",
+                           (kind, record["id"], source_revision, self.canonical(record), digest, created))
+        return self.get("study", study["id"], study_revision)
+
     def import_bundle(self, bundle):
         if not isinstance(bundle, dict) or bundle.get("bundle_schema_version") != "1.0":
             raise ValueError("Unsupported project-record bundle schema")

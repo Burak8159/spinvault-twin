@@ -155,21 +155,35 @@ $('study-load').onclick = async () => {
   try { const record = await request(`/api/project-records/study/${encodeURIComponent($('study-id').value.trim())}`); showStored('study', record); $('notice').textContent = 'Latest study revision loaded.'; }
   catch (error) { $('notice').textContent = error.message; }
 };
-for (const [buttonId, type, idField] of [['device-export', 'device', 'device-id'], ['study-export', 'study', 'study-id']]) {
+for (const [buttonId, type, idField] of [['device-export', 'device', 'device-id']]) {
   $(buttonId).onclick = async () => {
     try { const bundle = await request(`/api/project-records/${type}/${encodeURIComponent($(idField).value.trim())}/export`);
       download(`${type}-${$(idField).value.trim()}-r${bundle.source_revision}.json`, bundle); $('result').textContent = JSON.stringify(bundle, null, 2); $('notice').textContent = `${type} record exported with hash manifest.`; }
     catch (error) { $('notice').textContent = error.message; }
   };
 }
+$('study-export').onclick = async () => {
+  try {
+    const packageData = await request(`/api/project-records/study/${encodeURIComponent($('study-id').value.trim())}/package`);
+    download(`study-${$('study-id').value.trim()}-with-device.json`, packageData);
+    $('result').textContent = JSON.stringify(packageData, null, 2);
+    $('notice').textContent = 'Study and exact linked device revision exported as one hash-checked package.';
+  } catch (error) { $('notice').textContent = error.message; }
+};
 $('import').onclick = async () => {
   try {
     const file = $('bundle-file').files[0]; if (!file) throw new Error('Choose a JSON record bundle first.');
     if (file.size > 3 * 1024 * 1024) throw new Error('Bundle exceeds the 3 MiB limit.');
     const bundle = JSON.parse(await file.text());
-    const imported = await request('/api/project-records/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({bundle})});
-    showStored(imported.record_type, imported); $('result').textContent = JSON.stringify(imported, null, 2);
-    $('notice').textContent = 'Bundle hash verified and imported as a new record.';
+    if (bundle.package_type === 'study_with_device_revision') {
+      const imported = await request('/api/project-records/study-package/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({package: bundle})});
+      showStored('study', imported); $('result').textContent = JSON.stringify(imported, null, 2);
+      $('notice').textContent = 'Study and exact linked device revision imported as new records.';
+    } else {
+      const imported = await request('/api/project-records/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({bundle})});
+      showStored(imported.record_type, imported); $('result').textContent = JSON.stringify(imported, null, 2);
+      $('notice').textContent = 'Bundle hash verified and imported as a new record.';
+    }
   } catch (error) { $('notice').textContent = error.message; }
 };
 $('refresh').onclick = async () => {

@@ -127,6 +127,8 @@ Local record routes use `SPINVAULT_PROJECT_RECORDS_DB` (default `project_records
 - `POST /api/project-records/{type}` saves `{record, expected_revision}`.
 - `GET /api/project-records/{type}/{id}/export?revision=N` returns a hash-checked JSON bundle.
 - `POST /api/project-records/import` accepts `{bundle}` and imports only when the record ID is new; it never overwrites an existing ID.
+- `GET /api/project-records/study/{id}/package?revision=N` exports a study together with the exact device revision it references.
+- `POST /api/project-records/study-package/import` atomically imports that pair, preserves both revision numbers, verifies nested and package hashes, and rejects either ID collision.
 
 These endpoints accept JSON only and do not resolve user-supplied filesystem paths. The local UI provides ordered layer fields while other advanced structures remain explicit JSON fields; no material registry, scientific artifact access service, schema upgrade beyond v1, or project-wide atomic study export is claimed.
 

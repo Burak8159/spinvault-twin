@@ -45,10 +45,43 @@ class ImportBundle(BaseModel):
         return value
 
 
+class ImportStudyPackage(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    package: dict
+
+    @field_validator("package")
+    @classmethod
+    def bounded_package(cls, value):
+        if len(json.dumps(value, allow_nan=False).encode("utf-8")) > 6 * 1024 * 1024:
+            raise ValueError("Study package exceeds the 6 MiB limit")
+        return value
+
+
 @router.post("/project-records/import")
 def import_record(request: ImportBundle):
     try:
         return store().import_bundle(request.bundle)
+    except ProjectRecordConflict as error:
+        raise HTTPException(409, str(error))
+    except (ValueError, TypeError, KeyError) as error:
+        raise HTTPException(422, str(error))
+
+
+@router.get("/project-records/study/{identifier}/package")
+def export_study_package(identifier: str, revision: int | None = None):
+    try:
+        package = store().export_study_package(identifier, revision)
+    except ValueError as error:
+        raise HTTPException(422, str(error))
+    if package is None:
+        raise HTTPException(404, "Project study revision unavailable")
+    return package
+
+
+@router.post("/project-records/study-package/import")
+def import_study_package(request: ImportStudyPackage):
+    try:
+        return store().import_study_package(request.package)
     except ProjectRecordConflict as error:
         raise HTTPException(409, str(error))
     except (ValueError, TypeError, KeyError) as error:
