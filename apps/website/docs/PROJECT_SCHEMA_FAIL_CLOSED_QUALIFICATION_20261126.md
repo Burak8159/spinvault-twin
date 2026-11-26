@@ -6,7 +6,7 @@
 
 ## Verification
 
-A regression constructs a synthetic future-version database with a separate table and default journal mode, opens it through the store, and verifies that the explicit exception is raised while the migration row, table set, and journal mode remain unchanged. Focused project-record tests: 23 passed. Full backend suite: **250 passed, 1 skipped**. The skipped test is the optional real-MuMax3 integration. One existing Starlette/httpx deprecation warning is emitted by the test client.
+A regression constructs a synthetic future-version database with a separate table and default journal mode, opens it through the store, and verifies that the explicit exception is raised while the migration row, table set, and journal mode remain unchanged. Focused project-record tests: 23 passed. Full backend suite: **250 passed, 1 skipped**. The skipped test is the optional real-MuMax3 integration. One existing Starlette/httpx deprecation warning is emitted by the test client. The exact source-only v7 ZIP was extracted into a disposable directory; its project-record suite passed 23/23 and its website suite passed 166/166 from the extracted files.
 
 ## Scope
 
