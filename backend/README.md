@@ -128,7 +128,9 @@ Local record routes use `SPINVAULT_PROJECT_RECORDS_DB` (default `project_records
 - `GET /api/project-records/{type}/{id}/export?revision=N` returns a hash-checked JSON bundle.
 - `POST /api/project-records/import` accepts `{bundle}` and imports only when the record ID is new; it never overwrites an existing ID.
 
-These endpoints accept JSON only and do not resolve user-supplied filesystem paths. The API foundation is tested locally; no rich device/structure editor, material registry, scientific artifact access service, schema upgrade beyond v1, or project-wide atomic study export is claimed.
+These endpoints accept JSON only and do not resolve user-supplied filesystem paths. The local UI provides ordered layer fields while other advanced structures remain explicit JSON fields; no material registry, scientific artifact access service, schema upgrade beyond v1, or project-wide atomic study export is claimed.
+
+Back up or restore the SQLite project-record store with `python scripts/backup_project_records.py backup DB NEW_BACKUP_DIR` and `python scripts/backup_project_records.py restore BACKUP_DIR NEW_DB`. Both operations refuse overwrite. The backup includes a SHA-256/byte-count manifest and SQLite integrity check; restore verifies the hash and supported schema version before atomically creating a new database. Keep backups in a separately managed, access-controlled location; this local tool does not itself provide off-device backup.
 
 ### Requirements workspace
 
