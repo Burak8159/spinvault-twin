@@ -44,6 +44,14 @@ test('structure refresh renders the records returned by the API', () => {
   assert.doesNotMatch(script, /for \(const item of structureRecords\)/);
 });
 
+test('structure catalog workflow supports QE and SIESTA while preserving unvalidated status', () => {
+  assert.match(html, /72\/88 QE or 152 SIESTA structure JSON/);
+  assert.match(script, /import-structure-catalog/);
+  assert.match(script, /per-atom input seeds/);
+  assert.match(script, /transport remains unvalidated/);
+  assert.match(script, /Boundary directions/);
+});
+
 test('saved study list exposes its workflow status and exact structure revision honestly', () => {
   assert.match(script, /workflow: \$\{record\.record\.status\} \(not scientific acceptance\)/);
   assert.match(script, /\$\{record\.record\.structure_id\}@\$\{record\.record\.structure_revision\}/);

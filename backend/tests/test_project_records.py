@@ -6,7 +6,7 @@ import sqlite3
 import pytest
 
 from app.services.project_record_store import ProjectRecordConflict, ProjectRecordStore
-from app.api.project_records import qe_catalog_to_structure
+from app.api.project_records import structure_catalog_to_record
 
 
 def device_record(identifier="stack-alpha"):
@@ -403,7 +403,7 @@ def test_qe_structure_catalog_conversion_keeps_source_status_and_magnetic_labels
         "species_counts": {"FeA": 1, "O": 1}, "initial_spin_parameters": {"FeA": -0.4},
         "magnetic_label": "seed only", "source_input": "qe.in", "source_sha256": "a" * 64,
         "status": "PREPARED_NOT_EXECUTED", "transport_validated": False}
-    converted = qe_catalog_to_structure(json.dumps(catalog), "qe-small-test.json")
+    converted = structure_catalog_to_record(json.dumps(catalog), "qe-small-test.json")
     assert converted["source_status"] == "PREPARED_NOT_EXECUTED"
     assert converted["transport_validated"] is False
     assert converted["atoms"][0]["element"] == "Fe"
@@ -413,6 +413,67 @@ def test_qe_structure_catalog_conversion_keeps_source_status_and_magnetic_labels
     assert any(ref.startswith("catalog_sha256=") for ref in converted["source_refs"])
 
 
+def test_siesta_candidate_catalog_preserves_regions_atom_seeds_and_source_hashes(tmp_path):
+    catalog = {"schema_version": 1, "id": "candidate-152", "atom_count": 2,
+        "cell_angstrom": [[5,0,0],[0,5,0],[0,0,20]],
+        "atoms": [{"index": 1, "species": "FeCFAS", "position_angstrom": [0,0,0],
+                   "region": "left_electrode"},
+                  {"index": 2, "species": "FeA", "position_angstrom": [1,1,1],
+                   "region": "central_scattering"}],
+        "species_counts": {"FeCFAS": 1, "FeA": 1}, "initial_spin_parameters": {},
+        "periodic_axes": [True, True, False],
+        "initial_spin_by_atom": {"1": 1.2, "2": -4.1},
+        "structure_metadata": {"partition": {"left_electrode": [1,1],
+                                               "central_scattering": [2,2]}},
+        "related_sources": [{"path": "RUN.fdf", "sha256": "b" * 64}],
+        "magnetic_label": "input seeds only; candidate is unconverged",
+        "source_input": "geometry_152_partitioned.xyz", "source_sha256": "a" * 64,
+        "status": "UNCONVERGED_DIAGNOSTIC", "transport_validated": False}
+    converted = structure_catalog_to_record(json.dumps(catalog), "152-siesta.json")
+    assert converted["atoms"][0]["element"] == "Fe"
+    assert converted["atoms"][0]["species_label"] == "FeCFAS"
+    assert converted["atoms"][0]["region"] == "left_electrode"
+    assert converted["atoms"][1]["region"] == "central_scattering"
+    assert converted["metadata"]["initial_spin_by_atom"] == {"1": 1.2, "2": -4.1}
+    assert converted["periodic_axes"] == [True, True, False]
+    assert converted["metadata"]["structure_metadata"] == catalog["structure_metadata"]
+    assert any("RUN.fdf" in ref and "b" * 64 in ref for ref in converted["source_refs"])
+    store = ProjectRecordStore(tmp_path / "siesta-structure.sqlite")
+    saved = store.save("structure", converted, expected_revision=0)
+    loaded = store.get("structure", "candidate-152")
+    assert saved["sha256"] == loaded["sha256"]
+    assert loaded["record"]["transport_validated"] is False
+    assert loaded["record"]["source_status"] == "UNCONVERGED_DIAGNOSTIC"
+
+
+def test_structure_catalog_api_uses_generic_route_and_never_accepts_transport(client, tmp_path, monkeypatch):
+    monkeypatch.setenv("SPINVAULT_PROJECT_RECORDS_DB", str(tmp_path / "catalog-api.sqlite"))
+    catalog = {"schema_version": 1, "id": "siesta-api-candidate", "atom_count": 1,
+        "cell_angstrom": [[4,0,0],[0,4,0],[0,0,6]],
+        "atoms": [{"index": 1, "species": "FeCFAS", "position_angstrom": [0,0,0],
+                   "region": "left_electrode"}],
+        "species_counts": {"FeCFAS": 1}, "initial_spin_parameters": {},
+        "magnetic_label": "input seed only", "source_input": "geometry.xyz",
+        "source_sha256": "d" * 64, "status": "PREPARED_NOT_EXECUTED",
+        "transport_validated": True}
+    response = client.post("/api/project-records/import-structure-catalog", json={
+        "catalog_json": json.dumps(catalog), "filename": "siesta-candidate.json"})
+    assert response.status_code == 200, response.json()
+    assert response.json()["record"]["transport_validated"] is False
+    assert response.json()["record"]["atoms"][0]["region"] == "left_electrode"
+
+
+def test_structure_catalog_rejects_incomplete_or_nonfinite_atom_spin_map():
+    catalog = {"schema_version": 1, "id": "bad-spin-map", "atom_count": 1,
+        "cell_angstrom": [[4,0,0],[0,4,0],[0,0,6]],
+        "atoms": [{"index": 1, "species": "FeCFAS", "position_angstrom": [0,0,0]}],
+        "species_counts": {"FeCFAS": 1}, "initial_spin_parameters": {},
+        "initial_spin_by_atom": {"1": float("nan")}, "magnetic_label": "seed",
+        "source_input": "geometry.xyz", "source_sha256": "c" * 64, "status": "INCOMPLETE"}
+    with pytest.raises(ValueError, match="Per-atom initial spin"):
+        structure_catalog_to_record(json.dumps(catalog, allow_nan=True), "bad-spin-map.json")
+
+
 def test_qe_structure_catalog_conversion_rejects_species_count_and_atom_order_errors():
     catalog = {"schema_version": 1, "id": "bad-catalog", "atom_count": 1,
         "cell_angstrom": [[4,0,0],[0,4,0],[0,0,6]],
@@ -420,4 +481,4 @@ def test_qe_structure_catalog_conversion_rejects_species_count_and_atom_order_er
         "species_counts": {"O": 1}, "initial_spin_parameters": {},
         "magnetic_label": "seed", "source_sha256": "a" * 64, "status": "INCOMPLETE"}
     with pytest.raises(ValueError, match="species counts"):
-        qe_catalog_to_structure(json.dumps(catalog), "bad.json")
+        structure_catalog_to_record(json.dumps(catalog), "bad.json")

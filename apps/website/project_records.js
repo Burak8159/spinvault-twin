@@ -313,7 +313,10 @@ function renderStructureSummary(envelope) {
     const region = atom.region || 'Unassigned'; counts[region] = (counts[region] || 0) + 1; return counts;
   }, {});
   const cell = record.lattice_vectors_angstrom.map(vector => vector.map(value => Number(value).toFixed(4)).join(', ')).join(' | ');
-  const seeds = Object.entries(record.initial_spin_by_species || {}).map(([species, value]) => `${species}: ${value}`).join(' · ') || 'Not specified';
+  const axes = record.periodic_axes.map((periodic, index) => `a${index + 1} ${periodic ? 'periodic' : 'open'}`).join(' · ');
+  const speciesSeeds = Object.entries(record.initial_spin_by_species || {}).map(([species, value]) => `${species}: ${value}`).join(' · ');
+  const atomSeeds = Object.keys(record.metadata?.initial_spin_by_atom || {}).length;
+  const seeds = speciesSeeds || (atomSeeds ? `${atomSeeds} per-atom input seeds (see full record)` : 'Not specified');
   const sourceHash = record.source_refs.find(reference => reference.startsWith('catalog_sha256='))?.slice('catalog_sha256='.length) || 'Not available';
   const rows = [
     ['Atoms', String(record.atom_count)],
@@ -324,6 +327,7 @@ function renderStructureSummary(envelope) {
     ['Magnetic label', record.magnetic_label],
     ['Initial spin seeds', seeds],
     ['Cell vectors (Å)', cell],
+    ['Boundary directions', axes],
     ['Catalog SHA-256', sourceHash]
   ];
   const summary = $('structure-summary'); summary.replaceChildren();
@@ -337,12 +341,12 @@ $('structure-import').onclick = async () => {
   const status = $('structure-status'); status.textContent = 'Validating source structure…';
   try {
     const file = $('structure-file').files[0];
-    if (!file) throw new Error('Choose a 72- or 88-atom QE structure JSON file.');
+    if (!file) throw new Error('Choose a supported QE or SIESTA structure catalog JSON file.');
     if (file.size > 2 * 1024 * 1024) throw new Error('Structure record exceeds the 2 MiB limit.');
     const rawText = await file.text();
     const catalogDigest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawText))))
       .map(byte => byte.toString(16).padStart(2,'0')).join('');
-    const saved = await request('/api/project-records/import-qe-structure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({catalog_json:rawText,filename:file.name})});
+    const saved = await request('/api/project-records/import-structure-catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({catalog_json:rawText,filename:file.name})});
     status.textContent = `Saved ${saved.record.id} revision ${saved.revision}; ${saved.record.atom_count} atoms; source state ${saved.record.source_status}; transport remains unvalidated. Catalog JSON SHA-256 ${catalogDigest}.`;
     $('structure-detail-summary').textContent = `${saved.record.id} · revision ${saved.revision} · ${saved.record.atom_count} atoms · ${saved.record.source_status} · transport not validated.`;
     renderStructureSummary(saved); $('structure-detail').textContent = JSON.stringify(saved,null,2); $('structure-json-details').open = false;
