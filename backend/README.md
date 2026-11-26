@@ -173,6 +173,8 @@ Open `/requirements.html` on the local website. Project requirements default to 
 
 Evidence evaluation additionally requires `SPINVAULT_REQUIREMENT_EVIDENCE_ROOT`, outside the public website tree. Each `ID.json` names a relative JSON observation, its SHA-256, and a review object with `status`, `reviewer`, `evidence_ref`, and `scope`. The observation supplies metric, value, unit and structured operating conditions. When `SPINVAULT_EVIDENCE_SIGNING_KEY_FILE` is configured, qualification requires a matching HMAC signature; without a verified signature the observation remains unqualified. A caller cannot supply qualification in the evaluation request. Artifact JSON is bounded to 1 MiB per file.
 
+The grouped same-cycle endpoint also requires `SPINVAULT_ACCEPTANCE_POLICY_FILE` to point to the project policy JSON. If it is unset or invalid, the endpoint returns a configuration error. A policy with `runtime_semantics_verified: false` can display traceable values but cannot satisfy the numerical cycle acceptance boolean. The local launcher intentionally does not select a project policy on the user's behalf; configure the path for the project before launch.
+
 Do not expose these local administrative functions or private evidence on a public server without deployment authentication, permissions and review controls. The current release is qualified only for the tested local workflows.
 
 ### Signed local evidence reviews
