@@ -117,8 +117,12 @@ class JobService:
                 solver=request.requested_solver,
                 notes=[solver_note],
             )
-            updated = self.store.update(job)
-            self.queue.enqueue(job_id)
+            enqueue_atomically = getattr(self.store, "enqueue_job", None)
+            if callable(enqueue_atomically):
+                updated = enqueue_atomically(job)
+            else:
+                updated = self.store.update(job)
+                self.queue.enqueue(job_id)
             return updated
 
         job.status = "queued"

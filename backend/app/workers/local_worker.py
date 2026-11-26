@@ -80,6 +80,7 @@ class LocalWorker:
             return True
         job = self.store.get(job_id)
         if job is None:
+            self.queue.clear_cancelled(job_id)
             return True
         if job.requested_solver == "python_micromagnetic":
             try:
@@ -102,9 +103,11 @@ class LocalWorker:
                 message=f"Local worker only handles mumax3 jobs (got {job.requested_solver}).",
                 phase="failed",
             )
+            self.queue.clear_cancelled(job_id)
             return True
         if job.request is None:
             self._fail(job, code="worker_missing_request", message="Job has no request payload.", phase="failed")
+            self.queue.clear_cancelled(job_id)
             return True
 
         try:

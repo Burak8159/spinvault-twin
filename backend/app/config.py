@@ -5,6 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 import os
 from pathlib import Path
+from typing import Literal
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -52,9 +53,10 @@ class Settings(BaseSettings):
     app_version: str = "0.4.0"
     # Development origins only by default. Override via SPINVAULT_CORS_ORIGINS.
     cors_origins: str = Field(default_factory=default_cors_origins)
-    # "memory" | "json"
-    job_store: str = "memory"
+    # "memory" | "json" | "sqlite"
+    job_store: Literal["memory", "json", "sqlite"] = "sqlite"
     data_dir: Path = BACKEND_ROOT / "data" / "jobs"
+    job_database: Path = BACKEND_ROOT / "data" / "jobs.sqlite3"
     requirements_db: Path = BACKEND_ROOT / "data" / "requirements.sqlite"
 
     # MuMax3: read MUMAX3_* without requiring the SPINVAULT_ prefix.

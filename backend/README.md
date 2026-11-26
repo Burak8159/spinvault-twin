@@ -26,9 +26,23 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8001
 ```
 
-### Worker mode (important)
+### Worker mode and local persistence
 
-`InMemorySimulationQueue` is **process-local**. Real MuMax3 execution requires the **in-process** worker that starts with the API:
+The default `SPINVAULT_JOB_STORE=sqlite` stores job records, pending queue entries,
+and cross-process cancellation markers in `backend/data/jobs.sqlite3` (override
+with `SPINVAULT_JOB_DATABASE`). SQLite claims are transactional, enqueueing a
+queued job and recording its queue entry happen in one transaction, and pending
+jobs survive API/worker restarts. This is local single-host persistence, not a
+multi-host queue service or off-device backup.
+
+Back up and restore the local job database with
+`python scripts/backup_job_runtime.py backup DB NEW_BACKUP_DIR` and
+`python scripts/backup_job_runtime.py restore BACKUP_DIR NEW_DB`. The tool uses
+SQLite's online backup API, verifies schema/integrity and SHA-256, and refuses to
+overwrite an existing destination. It covers job records and queue state, not
+solver output directories; back those up separately if they must be retained.
+
+For a simple single-process local run, keep the in-process worker enabled:
 
 ```bash
 # Default — keep this for Windows RTX / MuMax3 hosts
@@ -36,13 +50,22 @@ export SPINVAULT_WORKER_ENABLED=true
 uvicorn app.main:app --host 0.0.0.0 --port 8001
 ```
 
-`python -m app.workers` starts a separate process with its own empty queue and **cannot** drain jobs enqueued by uvicorn. Disable the in-process worker only for tests that call `LocalWorker.run_once()` directly:
+With the SQLite store, `python -m app.workers` can share the same database and
+drain jobs submitted through the API. If running it separately, disable the API's
+in-process worker to avoid unintentionally running multiple workers:
 
 ```bash
-export SPINVAULT_WORKER_ENABLED=false   # tests / manual drain only
+export SPINVAULT_WORKER_ENABLED=false
+python -m app.workers
 ```
 
-A shared cross-process queue is not implemented yet.
+`SPINVAULT_JOB_STORE=memory` and `json` remain available for tests or legacy local
+setups; those modes use a process-local queue, so a separate worker cannot see
+their jobs. A job already claimed by a worker is deliberately not retried
+automatically after a process crash, because solver files may be partial and
+automatic retry could duplicate computation. Inspect its worker/job artifacts
+before deciding how to retry it. The SQLite mode has not yet been qualified for
+multi-host production deployment or disaster recovery.
 
 ## MuMax3 on a configured host (e.g. Windows + CUDA)
 

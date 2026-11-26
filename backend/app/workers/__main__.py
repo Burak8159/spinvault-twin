@@ -1,19 +1,10 @@
-"""Standalone MuMax3 worker entrypoint (limited — see notes below).
+"""Standalone worker entrypoint.
 
-Current queue is process-local (InMemorySimulationQueue). Real MuMax3 execution
-with the API must use the in-process worker:
-
-  export SPINVAULT_WORKER_ENABLED=true   # default
-  uvicorn app.main:app --port 8001
-
-`python -m app.workers` starts a *separate* process with its own empty queue and
-cannot drain jobs enqueued by uvicorn. Use it only for local experiments against
-jobs you enqueue into that same process.
+With the default SQLite job store, the worker and API share a durable local
+queue. When using the in-memory store, each process has an isolated queue.
 """
 
 from __future__ import annotations
-
-import sys
 
 from app.api.deps import get_job_store, get_local_worker, get_simulation_queue
 from app.config import get_settings
@@ -21,12 +12,12 @@ from app.config import get_settings
 
 def main() -> None:
     settings = get_settings()
-    print(
-        "WARNING: InMemorySimulationQueue is process-local.\n"
-        "This standalone process will NOT see jobs enqueued by a separate uvicorn API.\n"
-        "For real MuMax3/RTX runs keep SPINVAULT_WORKER_ENABLED=true (in-process worker).\n",
-        file=sys.stderr,
-    )
+    if settings.job_store != "sqlite":
+        print(
+            "WARNING: The configured in-memory queue is process-local; this worker "
+            "cannot see jobs from another API process.\n",
+            file=sys.stderr,
+        )
     _store = get_job_store()
     _queue = get_simulation_queue()
     worker = get_local_worker()

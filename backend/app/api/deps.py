@@ -11,8 +11,10 @@ from app.services.solver_router import SolverRouter
 from app.storage.local_store import LocalJsonJobStore
 from app.storage.memory_store import InMemoryJobStore
 from app.storage.protocol import JobStore
+from app.storage.sqlite_store import SQLiteJobStore
 from app.workers.local_worker import LocalWorker
 from app.workers.queue import InMemorySimulationQueue, SimulationQueue
+from app.workers.sqlite_queue import SQLiteSimulationQueue
 
 
 @lru_cache
@@ -20,11 +22,16 @@ def get_job_store() -> JobStore:
     settings = get_settings()
     if settings.job_store == "json":
         return LocalJsonJobStore(settings.data_dir)
+    if settings.job_store == "sqlite":
+        return SQLiteJobStore(settings.job_database)
     return InMemoryJobStore()
 
 
 @lru_cache
 def get_simulation_queue() -> SimulationQueue:
+    settings = get_settings()
+    if settings.job_store == "sqlite":
+        return SQLiteSimulationQueue(settings.job_database)
     return InMemorySimulationQueue()
 
 

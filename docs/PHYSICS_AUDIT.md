@@ -187,8 +187,9 @@ Gaps:
 - the exact executed command and exit status are not yet consolidated into one
   mandatory metadata document;
 - `.ovf.gz` is unsupported;
-- the default memory job store loses API records on restart, although disk
-  artifacts remain;
+- job records and pending work now use a local SQLite database by default and
+  have a hash-verified backup/restore tool; interrupted in-flight jobs still
+  require inspection before a deliberate retry;
 - there is no processing-version field that independently versions the parser.
 
 ## Units
