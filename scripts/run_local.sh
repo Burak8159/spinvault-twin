@@ -9,6 +9,7 @@ API_PORT="${SPINVAULT_API_PORT:-8001}"
 WEB_PORT="${SPINVAULT_WEB_PORT:-4191}"
 VENV="$REPO_ROOT/backend/.venv"
 PYTHON="$VENV/bin/python"
+VENV_CREATOR=""
 
 die() {
   echo "error: $*" >&2
@@ -30,12 +31,17 @@ require_free_port() {
 }
 
 command -v python3 >/dev/null 2>&1 || die "python3 is required but was not found on PATH."
+VENV_CREATOR="$(command -v python3)"
+if [ "$(uname -s)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ] && command -v python3.11 >/dev/null 2>&1; then
+  VENV_CREATOR="$(command -v python3.11)"
+fi
 require_free_port "$API_PORT" "API"
 require_free_port "$WEB_PORT" "website"
 
 if [ ! -x "$PYTHON" ]; then
+  echo "setup: creating virtualenv with $VENV_CREATOR"
   echo "setup: creating virtualenv at backend/.venv"
-  python3 -m venv "$VENV"
+  "$VENV_CREATOR" -m venv "$VENV"
 fi
 
 "$PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' ||
