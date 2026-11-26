@@ -177,15 +177,17 @@ for (const [buttonId, type, idField] of [['device-export', 'device', 'device-id'
 $('study-export').onclick = async () => {
   try {
     const packageData = await request(`/api/project-records/study/${encodeURIComponent($('study-id').value.trim())}/package`);
-    download(`study-${$('study-id').value.trim()}-with-device.json`, packageData);
+    download(`study-${$('study-id').value.trim()}-with-linked-records.json`, packageData);
     $('result').textContent = JSON.stringify(packageData, null, 2);
-    $('notice').textContent = 'Study and exact linked device revision exported as one hash-checked package.';
+    $('notice').textContent = packageData.package_type === 'study_with_device_and_structure'
+      ? 'Study and its exact linked device and structure revisions exported as one hash-checked package.'
+      : 'Study and exact linked device revision exported as one hash-checked package.';
   } catch (error) { $('notice').textContent = error.message; }
 };
 $('import').onclick = async () => {
   try {
     const file = $('bundle-file').files[0]; if (!file) throw new Error('Choose a JSON record bundle first.');
-    if (file.size > 3 * 1024 * 1024) throw new Error('Bundle exceeds the 3 MiB limit.');
+    if (file.size > 6 * 1024 * 1024) throw new Error('Bundle exceeds the 6 MiB limit.');
     const bundle = JSON.parse(await file.text());
     if (['study_with_device_revision', 'study_with_device_and_structure'].includes(bundle.package_type)) {
       const imported = await request('/api/project-records/study-package/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({package: bundle})});
@@ -194,6 +196,7 @@ $('import').onclick = async () => {
         ? 'Study and its exact linked device and structure revisions imported as new records.'
         : 'Study and exact linked device revision imported as new records.';
     } else {
+      if (file.size > 3 * 1024 * 1024) throw new Error('Record bundle exceeds the 3 MiB limit.');
       const imported = await request('/api/project-records/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({bundle})});
       showStored(imported.record_type, imported); $('result').textContent = JSON.stringify(imported, null, 2);
       $('notice').textContent = 'Bundle hash verified and imported as a new record.';
@@ -281,3 +284,4 @@ $('structure-refresh').onclick = async () => {
     status.textContent = `Loaded ${list.children.length} structure record(s). Source convergence labels are preserved and not promoted.`;
   } catch (error) { status.textContent = error.message; }
 };
+void $('structure-refresh').onclick();

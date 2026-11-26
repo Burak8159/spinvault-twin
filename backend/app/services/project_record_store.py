@@ -1,4 +1,4 @@
-"""Transactional append-only storage and bounded JSON round-trip for device/study records."""
+"""Transactional append-only storage and bounded JSON round-trip for project records."""
 from __future__ import annotations
 
 import hashlib
