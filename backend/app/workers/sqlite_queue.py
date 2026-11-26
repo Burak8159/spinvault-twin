@@ -7,6 +7,7 @@ import socket
 import sqlite3
 from pathlib import Path
 
+from app.storage.runtime_schema import ensure_runtime_schema
 from app.workers import process_check
 
 
@@ -23,31 +24,7 @@ class SQLiteSimulationQueue:
         self.database.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             connection.execute("PRAGMA journal_mode = WAL")
-            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
-            if version > 2:
-                raise RuntimeError(f"Unsupported job database schema version: {version}")
-        with self._connect() as connection:
-            connection.execute(
-                """CREATE TABLE IF NOT EXISTS simulation_queue (
-                    job_id TEXT PRIMARY KEY,
-                    enqueued_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                )"""
-            )
-            connection.execute(
-                """CREATE TABLE IF NOT EXISTS simulation_cancellations (
-                    job_id TEXT PRIMARY KEY,
-                    requested_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                )"""
-            )
-            connection.execute(
-                """CREATE TABLE IF NOT EXISTS simulation_claims (
-                    job_id TEXT PRIMARY KEY,
-                    owner_host TEXT NOT NULL,
-                    owner_pid INTEGER NOT NULL,
-                    claimed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                )"""
-            )
-            connection.execute("PRAGMA user_version = 2")
+            ensure_runtime_schema(connection)
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database, timeout=15)
@@ -106,23 +83,37 @@ class SQLiteSimulationQueue:
             connection.execute("DELETE FROM simulation_cancellations WHERE job_id = ?", (job_id,))
             connection.execute("DELETE FROM simulation_claims WHERE job_id = ?", (job_id,))
 
-    def reconcile_orphaned_claims(self) -> list[tuple[str, str, int]]:
-        """Release same-host claims only after the owning process is confirmed gone.
+    def record_solver_process(self, job_id: str, solver_pid: int) -> None:
+        """Associate the active solver child PID with its queue claim."""
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE simulation_claims SET solver_pid = ? WHERE job_id = ?",
+                (solver_pid, job_id),
+            )
+
+    def reconcile_orphaned_claims(self) -> list[tuple[str, str, int, int | None]]:
+        """Find same-host claims only after worker and solver processes are gone.
 
         Unknown hosts and permission-denied PID checks remain untouched. Returned
         claims are never requeued automatically because their output may be partial.
         """
-        orphaned: list[tuple[str, str, int]] = []
+        orphaned: list[tuple[str, str, int, int | None]] = []
         host = socket.gethostname()
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             rows = connection.execute(
-                "SELECT job_id, owner_host, owner_pid FROM simulation_claims"
+                "SELECT job_id, owner_host, owner_pid, solver_pid FROM simulation_claims"
             ).fetchall()
-            for job_id, owner_host, owner_pid in rows:
-                if owner_host != host or process_check.process_is_alive(int(owner_pid)):
+            for job_id, owner_host, owner_pid, solver_pid in rows:
+                if (
+                    owner_host != host
+                    or process_check.process_is_alive(int(owner_pid))
+                    or (solver_pid is not None and process_check.process_is_alive(int(solver_pid)))
+                ):
                     continue
-                orphaned.append((str(job_id), str(owner_host), int(owner_pid)))
+                orphaned.append(
+                    (str(job_id), str(owner_host), int(owner_pid), int(solver_pid) if solver_pid is not None else None)
+                )
             connection.commit()
         return orphaned
 

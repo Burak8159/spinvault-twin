@@ -364,6 +364,9 @@ class LocalWorker:
             run_result = self.adapter.run(
                 prepared,
                 cancel_check=lambda: self.queue.is_cancelled(job.job_id),
+                on_process_started=lambda solver_pid: self.queue.record_solver_process(
+                    job.job_id, solver_pid
+                ),
             )
             if run_result.cancelled:
                 raise RuntimeError("__cancelled__")

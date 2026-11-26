@@ -18,6 +18,8 @@ class SimulationQueue(Protocol):
 
     def clear_cancelled(self, job_id: str) -> None: ...
 
+    def record_solver_process(self, job_id: str, solver_pid: int) -> None: ...
+
     def pending_count(self) -> int: ...
 
     def abandon(self, job_id: str) -> None: ...
@@ -63,6 +65,10 @@ class InMemorySimulationQueue:
     def clear_cancelled(self, job_id: str) -> None:
         with self._lock:
             self._cancelled.discard(job_id)
+
+    def record_solver_process(self, job_id: str, solver_pid: int) -> None:
+        """In-memory queues do not persist process identities."""
+        _ = job_id, solver_pid
 
     def pending_count(self) -> int:
         with self._lock:

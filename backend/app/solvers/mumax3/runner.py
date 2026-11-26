@@ -84,6 +84,7 @@ def default_runner(
     timeout: float,
     *,
     cancel_check: Callable[[], bool] | None = None,
+    on_process_started: Callable[[int], None] | None = None,
 ) -> tuple[int, bool, str, str]:
     creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
     try:
@@ -99,6 +100,8 @@ def default_runner(
         )
     except OSError:
         raise
+    if on_process_started is not None:
+        on_process_started(process.pid)
 
     deadline = time.monotonic() + timeout
     while True:
@@ -205,13 +208,18 @@ def run_mumax3(
     runner: RunnerFn | None = None,
     version: str | None = None,
     cancel_check: Callable[[], bool] | None = None,
+    on_process_started: Callable[[int], None] | None = None,
 ) -> SolverRunResult:
     started = utc_now()
     # mumax3 writes next to the script; run with script path relative to job_dir.
     command = [str(binary), prepared.script_path.name]
     if runner is None:
         code, timed_out, stdout, stderr = default_runner(
-            command, prepared.job_dir, float(timeout_seconds), cancel_check=cancel_check
+            command,
+            prepared.job_dir,
+            float(timeout_seconds),
+            cancel_check=cancel_check,
+            on_process_started=on_process_started,
         )
     else:
         # Existing injected runners keep the stable 3-argument test/integration contract.

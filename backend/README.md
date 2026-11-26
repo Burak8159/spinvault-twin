@@ -32,7 +32,9 @@ The default `SPINVAULT_JOB_STORE=sqlite` stores job records, pending queue entri
 worker claims and cross-process cancellation markers in `backend/data/jobs.sqlite3` (override
 with `SPINVAULT_JOB_DATABASE`). SQLite claims are transactional, enqueueing a
 queued job and recording its queue entry happen in one transaction, and pending
-jobs survive API/worker restarts. This is local single-host persistence, not a
+jobs survive API/worker restarts. Claims record both the worker and active solver
+PID so startup recovery does not mark a job interrupted while its solver remains
+alive. This is local single-host persistence, not a
 multi-host queue service or off-device backup.
 
 Back up and restore the local job database with

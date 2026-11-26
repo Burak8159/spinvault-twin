@@ -8,6 +8,7 @@ from pathlib import Path
 from app.models.jobs import JobRecord
 from app.models.jobs import JobWarning
 from app.models.provenance import utc_now
+from app.storage.runtime_schema import ensure_runtime_schema
 from app.workers import process_check
 
 
@@ -24,39 +25,7 @@ class SQLiteJobStore:
         self.database.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             connection.execute("PRAGMA journal_mode = WAL")
-            version = int(connection.execute("PRAGMA user_version").fetchone()[0])
-            if version > 2:
-                raise RuntimeError(f"Unsupported job database schema version: {version}")
-        with self._connect() as connection:
-            connection.execute(
-                """CREATE TABLE IF NOT EXISTS jobs (
-                    job_id TEXT PRIMARY KEY,
-                    payload TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                )"""
-            )
-            connection.execute(
-                """CREATE TABLE IF NOT EXISTS simulation_queue (
-                    job_id TEXT PRIMARY KEY,
-                    enqueued_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                )"""
-            )
-            connection.execute(
-                """CREATE TABLE IF NOT EXISTS simulation_cancellations (
-                    job_id TEXT PRIMARY KEY,
-                    requested_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                )"""
-            )
-            connection.execute(
-                """CREATE TABLE IF NOT EXISTS simulation_claims (
-                    job_id TEXT PRIMARY KEY,
-                    owner_host TEXT NOT NULL,
-                    owner_pid INTEGER NOT NULL,
-                    claimed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                )"""
-            )
-            connection.execute("PRAGMA user_version = 2")
+            ensure_runtime_schema(connection)
 
     def enqueue_job(self, job: JobRecord) -> JobRecord:
         """Atomically persist the queued record and its runnable queue entry."""
@@ -112,24 +81,35 @@ class SQLiteJobStore:
                 raise KeyError(f"Job not found: {job.job_id}")
         return job.model_copy(deep=True)
 
-    def mark_interrupted(self, job_id: str, owner_host: str, owner_pid: int) -> bool:
+    def mark_interrupted(
+        self, job_id: str, owner_host: str, owner_pid: int, solver_pid: int | None = None
+    ) -> bool:
         """Atomically mark a confirmed-dead local claim; never requeue partial work."""
         import socket
 
-        if owner_host != socket.gethostname() or process_check.process_is_alive(owner_pid):
+        if (
+            owner_host != socket.gethostname()
+            or process_check.process_is_alive(owner_pid)
+            or (solver_pid is not None and process_check.process_is_alive(solver_pid))
+        ):
             return False
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             claim = connection.execute(
-                "SELECT owner_host, owner_pid FROM simulation_claims WHERE job_id = ?",
+                "SELECT owner_host, owner_pid, solver_pid FROM simulation_claims WHERE job_id = ?",
                 (job_id,),
             ).fetchone()
             if (
                 claim is None
                 or claim["owner_host"] != owner_host
                 or int(claim["owner_pid"]) != owner_pid
+                or claim["solver_pid"] != solver_pid
                 or claim["owner_host"] != socket.gethostname()
                 or process_check.process_is_alive(int(claim["owner_pid"]))
+                or (
+                    claim["solver_pid"] is not None
+                    and process_check.process_is_alive(int(claim["solver_pid"]))
+                )
             ):
                 connection.rollback()
                 return False

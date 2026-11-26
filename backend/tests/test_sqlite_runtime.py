@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 from concurrent.futures import ThreadPoolExecutor
 from fastapi.testclient import TestClient
+import hashlib
+import json
 import sqlite3
 
 from app.models.jobs import JobRecord
@@ -149,6 +151,41 @@ def test_runtime_restore_rejects_tamper_and_existing_target(tmp_path: Path) -> N
         backup_runtime_database(source, backup_dir)
 
 
+def test_runtime_restore_upgrades_legacy_v2_backup_without_modifying_source(tmp_path: Path) -> None:
+    backup_dir = tmp_path / "legacy-backup"
+    backup_dir.mkdir()
+    source = backup_dir / "jobs.sqlite3"
+    with sqlite3.connect(source) as connection:
+        connection.executescript(
+            """CREATE TABLE jobs(job_id TEXT PRIMARY KEY, payload TEXT NOT NULL,
+                   created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+               CREATE TABLE simulation_queue(job_id TEXT PRIMARY KEY, enqueued_at TEXT NOT NULL);
+               CREATE TABLE simulation_cancellations(job_id TEXT PRIMARY KEY, requested_at TEXT NOT NULL);
+               CREATE TABLE simulation_claims(job_id TEXT PRIMARY KEY, owner_host TEXT NOT NULL,
+                   owner_pid INTEGER NOT NULL, claimed_at TEXT NOT NULL);
+               PRAGMA user_version = 2;"""
+        )
+    manifest = {
+        "schemaVersion": 2,
+        "database": source.name,
+        "bytes": source.stat().st_size,
+        "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "integrity": "ok",
+    }
+    (backup_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    destination = tmp_path / "restored-v3.sqlite3"
+
+    result = restore_runtime_database(backup_dir, destination)
+
+    with sqlite3.connect(source) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+    with sqlite3.connect(destination) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(simulation_claims)")}
+    assert "solver_pid" in columns
+    assert result["schemaVersion"] == 3
+
+
 def test_api_submission_is_visible_to_reconstructed_worker(tmp_path: Path) -> None:
     from tests.conftest import sample_mumax_payload
 
@@ -270,6 +307,30 @@ def test_completed_job_is_not_downgraded_by_stale_claim(tmp_path: Path, monkeypa
     assert store.get(job.job_id).status == "complete"  # type: ignore[union-attr]
 
 
+def test_recovery_waits_for_solver_child_after_worker_exits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database = tmp_path / "runtime.sqlite3"
+    store = SQLiteJobStore(database)
+    queue = SQLiteSimulationQueue(database)
+    job = _job("solver-still-running")
+    store.create(job)
+    queue.enqueue(job.job_id)
+    assert queue.claim_next() == job.job_id
+    queue.record_solver_process(job.job_id, 54321)
+    job.status = "running_solver"
+    job.progress_phase = "running_solver"
+    store.update(job)
+
+    monkeypatch.setattr(process_check, "process_is_alive", lambda pid: pid == 54321)
+    assert reconcile_interrupted_jobs(store, queue) == []
+    assert store.get(job.job_id).status == "running_solver"  # type: ignore[union-attr]
+
+    monkeypatch.setattr(process_check, "process_is_alive", lambda _pid: False)
+    assert reconcile_interrupted_jobs(store, queue) == [job.job_id]
+    assert store.get(job.job_id).status == "interrupted"  # type: ignore[union-attr]
+
+
 def test_competing_startup_recovery_updates_claim_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     database = tmp_path / "runtime.sqlite3"
     store = SQLiteJobStore(database)
@@ -326,7 +387,30 @@ def test_runtime_schema_v1_migrates_by_adding_claim_tracking(tmp_path: Path) -> 
     with sqlite3.connect(database) as connection:
         version = connection.execute("PRAGMA user_version").fetchone()[0]
         tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    assert version == 2
+    assert version == 3
     assert "simulation_claims" in tables
+    with sqlite3.connect(database) as connection:
+        claim_columns = {row[1] for row in connection.execute("PRAGMA table_info(simulation_claims)")}
+    assert "solver_pid" in claim_columns
     assert SQLiteJobStore(database).get("legacy-job").job_id == "legacy-job"  # type: ignore[union-attr]
     assert SQLiteSimulationQueue(database).claim_next() == "legacy-job"
+
+
+def test_runtime_schema_v2_adds_solver_process_identity(tmp_path: Path) -> None:
+    database = tmp_path / "legacy-v2.sqlite3"
+    with sqlite3.connect(database) as connection:
+        connection.executescript(
+            """CREATE TABLE jobs(job_id TEXT PRIMARY KEY, payload TEXT NOT NULL,
+                   created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+               CREATE TABLE simulation_queue(job_id TEXT PRIMARY KEY, enqueued_at TEXT NOT NULL);
+               CREATE TABLE simulation_cancellations(job_id TEXT PRIMARY KEY, requested_at TEXT NOT NULL);
+               CREATE TABLE simulation_claims(job_id TEXT PRIMARY KEY, owner_host TEXT NOT NULL,
+                   owner_pid INTEGER NOT NULL, claimed_at TEXT NOT NULL);
+               PRAGMA user_version = 2;"""
+        )
+    SQLiteSimulationQueue(database)
+    with sqlite3.connect(database) as connection:
+        version = connection.execute("PRAGMA user_version").fetchone()[0]
+        claim_columns = {row[1] for row in connection.execute("PRAGMA table_info(simulation_claims)")}
+    assert version == 3
+    assert "solver_pid" in claim_columns

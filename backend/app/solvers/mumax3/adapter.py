@@ -112,7 +112,13 @@ class Mumax3Adapter:
             script_hash=script_hash,
         )
 
-    def run(self, prepared: PreparedMumaxJob, *, cancel_check: Callable[[], bool] | None = None):
+    def run(
+        self,
+        prepared: PreparedMumaxJob,
+        *,
+        cancel_check: Callable[[], bool] | None = None,
+        on_process_started: Callable[[int], None] | None = None,
+    ):
         if not self.is_available() or self.binary_path is None:
             raise RuntimeError("MuMax3 binary is not configured on this machine.")
         version = probe_mumax3_version(self.binary_path, self.runner)
@@ -123,6 +129,7 @@ class Mumax3Adapter:
             runner=self.runner,
             version=version,
             cancel_check=cancel_check,
+            on_process_started=on_process_started,
         )
 
     def parse_outputs(self, job_dir: Path, **kwargs) -> SimulationResult:

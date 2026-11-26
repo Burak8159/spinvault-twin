@@ -16,10 +16,14 @@ def reconcile_interrupted_jobs(store: JobStore, queue: SimulationQueue) -> list[
     atomic_recover = getattr(store, "mark_interrupted", None)
     for claim in find_orphans():
         if isinstance(claim, tuple):
-            job_id, owner_host, owner_pid = claim
+            if len(claim) == 4:
+                job_id, owner_host, owner_pid, solver_pid = claim
+            else:
+                job_id, owner_host, owner_pid = claim
+                solver_pid = None
         else:
-            job_id, owner_host, owner_pid = claim, "", -1
-        if callable(atomic_recover) and atomic_recover(job_id, owner_host, owner_pid):
+            job_id, owner_host, owner_pid, solver_pid = claim, "", -1, None
+        if callable(atomic_recover) and atomic_recover(job_id, owner_host, owner_pid, solver_pid):
             reconciled.append(job_id)
             continue
         if callable(atomic_recover):
