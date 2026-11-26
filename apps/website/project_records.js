@@ -93,10 +93,13 @@ function recordPayload(type) {
     operating_domain: jsonField('domain', 'object', 'Operating domain'),
     source_refs: jsonField('device-sources', 'array', 'Source references'), metadata: {}
   };
+  const linkedStructure = $('study-structure').value;
+  const [structure_id, rawStructureRevision] = linkedStructure ? linkedStructure.split('@') : [null, null];
   return {
     schema_version: '1.0', record_type: 'study', id: $('study-id').value.trim(),
     title: $('study-title').value.trim(), device_id: $('study-device-id').value.trim(),
     device_revision: Number($('study-device-revision').value),
+    structure_id, structure_revision: rawStructureRevision ? Number(rawStructureRevision) : null,
     scientific_question: $('question').value.trim(), method: $('method').value.trim(),
     parameter_set: jsonField('parameters', 'object', 'Parameter set'),
     source_refs: jsonField('study-sources', 'array', 'Source references'), metadata: {}, status: $('study-status').value
@@ -115,6 +118,13 @@ function showStored(type, record) {
   } else {
     $('study-id').value = recordValue.id; $('study-title').value = recordValue.title;
     $('study-device-id').value = recordValue.device_id; $('study-device-revision').value = recordValue.device_revision;
+    if (recordValue.structure_id && recordValue.structure_revision) {
+      const exact = `${recordValue.structure_id}@${recordValue.structure_revision}`;
+      if (![...$('study-structure').options].some(option => option.value === exact)) {
+        $('study-structure').append(new Option(`${recordValue.structure_id} · revision ${recordValue.structure_revision} (linked exact revision)`, exact));
+      }
+      $('study-structure').value = exact;
+    } else $('study-structure').value = '';
     $('question').value = recordValue.scientific_question; $('method').value = recordValue.method;
     $('parameters').value = JSON.stringify(recordValue.parameter_set, null, 2);
     $('study-sources').value = JSON.stringify(recordValue.source_refs, null, 2);
@@ -144,7 +154,9 @@ $('study-form').onsubmit = async event => {
     const record = recordPayload('study');
     const saved = await request('/api/project-records/study', {method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({record, expected_revision: studyRevision})});
-    showStored('study', saved); $('notice').textContent = 'Study revision saved with its exact device revision.';
+    showStored('study', saved); $('notice').textContent = saved.record.structure_id
+      ? 'Study saved with exact device and structure revisions.'
+      : 'Study revision saved with its exact device revision; no structure is linked.';
   } catch (error) { $('notice').textContent = error.message; }
 };
 $('device-load').onclick = async () => {
@@ -175,10 +187,12 @@ $('import').onclick = async () => {
     const file = $('bundle-file').files[0]; if (!file) throw new Error('Choose a JSON record bundle first.');
     if (file.size > 3 * 1024 * 1024) throw new Error('Bundle exceeds the 3 MiB limit.');
     const bundle = JSON.parse(await file.text());
-    if (bundle.package_type === 'study_with_device_revision') {
+    if (['study_with_device_revision', 'study_with_device_and_structure'].includes(bundle.package_type)) {
       const imported = await request('/api/project-records/study-package/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({package: bundle})});
       showStored('study', imported); $('result').textContent = JSON.stringify(imported, null, 2);
-      $('notice').textContent = 'Study and exact linked device revision imported as new records.';
+      $('notice').textContent = bundle.package_type === 'study_with_device_and_structure'
+        ? 'Study and its exact linked device and structure revisions imported as new records.'
+        : 'Study and exact linked device revision imported as new records.';
     } else {
       const imported = await request('/api/project-records/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({bundle})});
       showStored(imported.record_type, imported); $('result').textContent = JSON.stringify(imported, null, 2);
@@ -223,6 +237,7 @@ $('archive-import').onclick = async () => {
     });
     status.textContent = `Imported ${imported.imported_records} record(s) and ${imported.imported_revisions} revision(s). No existing record was overwritten.`;
     await $('refresh').onclick();
+    await $('structure-refresh').onclick();
   } catch (error) { status.textContent = error.message; }
 };
 $('structure-import').onclick = async () => {
@@ -244,6 +259,17 @@ $('structure-refresh').onclick = async () => {
   const list = $('structure-list'); const status = $('structure-status'); list.replaceChildren();
   try {
     const result = await request('/api/project-records/structure');
+    const select = $('study-structure'); const selected = select.value;
+    select.replaceChildren(new Option('No structure linked', ''));
+    for (const item of structureRecords) {
+      select.append(new Option(`${item.id} · r${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status}`,
+        `${item.id}@${item.revision}`));
+    }
+    if (selected && ![...select.options].some(option => option.value === selected)) {
+      const [identifier, revision] = selected.split('@');
+      select.append(new Option(`${identifier} · revision ${revision} (linked exact revision)`, selected));
+    }
+    select.value = selected;
     for (const item of result.records) {
       const li = document.createElement('li'); const label = document.createElement('span');
       label.textContent = `${item.id} · r${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status} · transport ${item.record.transport_validated ? 'validated' : 'not validated'} `;

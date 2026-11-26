@@ -66,10 +66,18 @@ class StudyRecord(RecordModel):
     record_type: Literal["study"] = "study"
     device_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
     device_revision: int = Field(ge=1)
+    structure_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    structure_revision: int | None = Field(default=None, ge=1)
     scientific_question: str = Field(min_length=1, max_length=4000)
     method: str = Field(min_length=1, max_length=128)
     parameter_set: dict = Field(default_factory=dict)
     status: Literal["draft", "prepared", "running", "complete", "failed"] = "draft"
+
+    @model_validator(mode="after")
+    def paired_structure_reference(self):
+        if (self.structure_id is None) != (self.structure_revision is None):
+            raise ValueError("Study structure_id and structure_revision must be set together")
+        return self
 
 
 class StructureAtom(BaseModel):

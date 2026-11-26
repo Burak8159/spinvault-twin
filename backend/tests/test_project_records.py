@@ -178,6 +178,59 @@ def test_study_package_preserves_exact_parent_revision_atomically(tmp_path):
         ProjectRecordStore(tmp_path / "forged.sqlite").import_study_package(forged)
 
 
+def test_study_package_preserves_exact_structure_revision_too(tmp_path):
+    source = ProjectRecordStore(tmp_path / "source-with-structure.sqlite")
+    source.save("device", device_record("structure-parent-device"), 0)
+    structure_v1 = source.save("structure", structure_record("structure-parent-geometry"), 0)
+    structure_v2_payload = copy.deepcopy(structure_v1["record"])
+    structure_v2_payload["metadata"]["later"] = "must not replace linked r1"
+    source.save("structure", structure_v2_payload, 1)
+    study = {"schema_version": "1.0", "record_type": "study", "id": "structure-linked-study",
+             "title": "Exact structure link", "source_refs": [], "metadata": {},
+             "device_id": "structure-parent-device", "device_revision": 1,
+             "structure_id": "structure-parent-geometry", "structure_revision": 1,
+             "scientific_question": "Does the exact structure travel with its study?", "method": "synthetic test",
+             "parameter_set": {}, "status": "draft"}
+    source.save("study", study, 0)
+    package = source.export_study_package("structure-linked-study")
+    assert package["package_type"] == "study_with_device_and_structure"
+    assert package["structure"]["source_revision"] == 1
+    destination = ProjectRecordStore(tmp_path / "destination-with-structure.sqlite")
+    imported = destination.import_study_package(package)
+    assert imported["record"]["structure_revision"] == 1
+    assert destination.get("structure", "structure-parent-geometry", 1)["sha256"] == structure_v1["sha256"]
+    assert destination.get("structure", "structure-parent-geometry", 2) is None
+
+
+def test_study_structure_link_requires_exact_existing_revision_and_archive_parent(tmp_path):
+    source = ProjectRecordStore(tmp_path / "source-link-check.sqlite")
+    source.save("device", device_record("link-check-device"), 0)
+    study = {"schema_version": "1.0", "record_type": "study", "id": "link-check-study",
+             "title": "Structure parent validation", "source_refs": [], "metadata": {},
+             "device_id": "link-check-device", "device_revision": 1,
+             "structure_id": "missing-geometry", "structure_revision": 1,
+             "scientific_question": "Are structure parents checked?", "method": "synthetic test",
+             "parameter_set": {}, "status": "draft"}
+    with pytest.raises(ValueError, match="existing immutable structure revision"):
+        source.save("study", study, 0)
+    with pytest.raises(ValueError, match="set together"):
+        source.save("study", {**study, "structure_revision": None}, 0)
+
+    geometry = source.save("structure", structure_record("archive-link-geometry"), 0)
+    study.update(id="archive-link-study", structure_id="archive-link-geometry")
+    source.save("study", study, 0)
+    archive = source.export_project_archive()
+    archive["records"] = [entry for entry in archive["records"] if not (
+        entry["record_type"] == "structure" and entry["id"] == "archive-link-geometry")]
+    body = {key: value for key, value in archive.items() if key != "archive_sha256"}
+    archive["archive_sha256"] = hashlib.sha256(source.canonical(body).encode("utf-8")).hexdigest()
+    destination = ProjectRecordStore(tmp_path / "atomic-link-check.sqlite")
+    with pytest.raises(ValueError, match="missing structure revision"):
+        destination.import_project_archive(archive)
+    assert destination.list("device") == [] and destination.list("study") == [] and destination.list("structure") == []
+    assert geometry["record"]["id"] == "archive-link-geometry"
+
+
 def test_project_archive_round_trip_preserves_all_revisions_and_links(tmp_path):
     source = ProjectRecordStore(tmp_path / "source.sqlite")
     device_v1 = source.save("device", device_record("archive-device"), 0)

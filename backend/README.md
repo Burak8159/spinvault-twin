@@ -160,12 +160,13 @@ Local record routes use `SPINVAULT_PROJECT_RECORDS_DB` (default `project_records
 - `POST /api/project-records/{type}` saves `{record, expected_revision}`.
 - `GET /api/project-records/{type}/{id}/export?revision=N` returns a hash-checked JSON bundle.
 - `POST /api/project-records/import` accepts `{bundle}` and imports only when the record ID is new; it never overwrites an existing ID.
-- `GET /api/project-records/study/{id}/package?revision=N` exports a study together with the exact device revision it references.
-- `POST /api/project-records/study-package/import` atomically imports that pair, preserves both revision numbers, verifies nested and package hashes, and rejects either ID collision.
+- A study may optionally reference an exact immutable structure revision using `structure_id` and `structure_revision`; the pair is validated together and must already exist when saving or importing a standalone study bundle.
+- `GET /api/project-records/study/{id}/package?revision=N` exports a study together with the exact device revision and, when linked, the exact structure revision it references.
+- `POST /api/project-records/study-package/import` atomically imports the exact linked revisions, preserves their revision numbers, verifies nested and package hashes, and rejects ID collisions. Legacy study packages without a structure reference remain supported.
 - `POST /api/project-records/import-qe-structure` accepts the exact text of a version-1 QE structure catalog record and its filename. The API computes the catalog SHA-256, validates ordered atoms, coordinates and species counts, and stores a normalized source-aware structure record. It preserves the source status and always keeps `transport_validated` false.
 - `GET /api/project-records/structure` lists imported structures; `GET /api/project-records/structure/{id}?revision=N` reads one immutable revision; the standard record export route returns its hash-checked bundle.
-- `GET /api/project-records/archive` exports every device/study revision into one bounded, SHA-256 protected JSON archive.
-- `POST /api/project-records/archive/import` validates the entire archive, exact study-to-device links, revision continuity, and all hashes before atomically importing it. Any ID collision or invalid entry rejects the whole archive without partial writes.
+- `GET /api/project-records/archive` exports every device, study, and structure revision into one bounded, SHA-256 protected JSON archive.
+- `POST /api/project-records/archive/import` validates the entire archive, exact study-to-device and optional study-to-structure links, revision continuity, and all hashes before atomically importing it. Any ID collision or invalid entry rejects the whole archive without partial writes.
 
 The project archive contains versioned device, study, and structure records only. It deliberately does not package raw scientific files, simulation outputs, secrets, evidence-signing keys, or material data files. Structure import is limited to the QE catalog labels currently mapped in the API; unsupported species stop with an error rather than being guessed.
 

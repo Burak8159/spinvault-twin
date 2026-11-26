@@ -43,10 +43,21 @@ class ProjectRecordStore:
         return {"record_type": row["record_type"], "id": row["id"], "revision": row["revision"],
                 "record": json.loads(row["content"]), "sha256": row["sha256"], "created_at": row["created_at"]}
 
+    @staticmethod
+    def normalize_record(record_type, payload):
+        """Validate a record while preserving old v1 study hashes when links were absent."""
+        model = RECORD_MODELS[record_type].model_validate(payload)
+        record = model.model_dump(mode="json")
+        if record_type == "study":
+            for field in ("structure_id", "structure_revision"):
+                if field not in payload:
+                    record.pop(field, None)
+        return record
+
     def save(self, record_type, payload, expected_revision):
         if record_type not in RECORD_MODELS:
             raise ValueError("Unsupported project record type")
-        record = RECORD_MODELS[record_type].model_validate(payload).model_dump(mode="json")
+        record = self.normalize_record(record_type, payload)
         if record["record_type"] != record_type:
             raise ValueError("Record type does not match the requested collection")
         content = self.canonical(record)
@@ -62,6 +73,11 @@ class ProjectRecordStore:
                                     (record["device_id"], record["device_revision"])).fetchone()
                 if parent is None:
                     raise ValueError("Study must reference an existing immutable device revision")
+                if record.get("structure_id") is not None:
+                    structure = db.execute("SELECT 1 FROM project_record_revisions WHERE record_type='structure' AND id=? AND revision=?",
+                                           (record["structure_id"], record["structure_revision"])).fetchone()
+                    if structure is None:
+                        raise ValueError("Study must reference an existing immutable structure revision")
             revision = latest + 1
             created = datetime.now(timezone.utc).isoformat()
             db.execute("INSERT INTO project_record_revisions VALUES(?,?,?,?,?,?)",
@@ -101,14 +117,22 @@ class ProjectRecordStore:
         device = self.get("device", study["record"]["device_id"], study["record"]["device_revision"])
         if device is None:
             raise ValueError("Study's exact device revision is unavailable")
-        body = {"package_schema_version": "1.0", "package_type": "study_with_device_revision",
+        package_type = "study_with_device_revision"
+        body = {"package_schema_version": "1.0", "package_type": package_type,
                 "device": {"source_revision": device["revision"], "record": device["record"], "record_sha256": device["sha256"]},
                 "study": {"source_revision": study["revision"], "record": study["record"], "record_sha256": study["sha256"]}}
+        if study["record"].get("structure_id") is not None:
+            structure = self.get("structure", study["record"]["structure_id"], study["record"]["structure_revision"])
+            if structure is None:
+                raise ValueError("Study's exact structure revision is unavailable")
+            body["package_type"] = "study_with_device_and_structure"
+            body["structure"] = {"source_revision": structure["revision"], "record": structure["record"],
+                                  "record_sha256": structure["sha256"]}
         body["package_sha256"] = hashlib.sha256(self.canonical(body).encode("utf-8")).hexdigest()
         return body
 
     def export_project_archive(self):
-        """Export all device/study revisions as one content-hashed JSON archive."""
+        """Export all project-record revisions as one content-hashed JSON archive."""
         with self.connect() as db:
             rows = db.execute(
                 "SELECT * FROM project_record_revisions ORDER BY record_type,id,revision"
@@ -151,7 +175,7 @@ class ProjectRecordStore:
             revision = entry.get("revision")
             if not isinstance(revision, int) or isinstance(revision, bool) or revision < 1:
                 raise ValueError("Project archive contains an invalid revision number")
-            record = RECORD_MODELS[kind].model_validate(entry.get("record")).model_dump(mode="json")
+            record = self.normalize_record(kind, entry.get("record"))
             if record["record_type"] != kind:
                 raise ValueError("Project archive record type does not match its content")
             key = (kind, record["id"], revision)
@@ -177,6 +201,9 @@ class ProjectRecordStore:
         packaged_devices = {
             (identifier, revision) for kind, identifier, revision, *_ in prepared if kind == "device"
         }
+        packaged_structures = {
+            (identifier, revision) for kind, identifier, revision, *_ in prepared if kind == "structure"
+        }
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             for kind, identifier in revisions_by_id:
@@ -192,12 +219,21 @@ class ProjectRecordStore:
                     "SELECT id,revision FROM project_record_revisions WHERE record_type='device'"
                 )
             }
+            existing_structures = {
+                (row[0], row[1]) for row in db.execute(
+                    "SELECT id,revision FROM project_record_revisions WHERE record_type='structure'"
+                )
+            }
             for kind, _identifier, _revision, content, _digest, _created_at in prepared:
                 if kind == "study":
                     study = json.loads(content)
                     parent = (study["device_id"], study["device_revision"])
                     if parent not in packaged_devices and parent not in existing_devices:
                         raise ValueError("Project archive study references a missing device revision")
+                    if study.get("structure_id") is not None:
+                        structure_parent = (study["structure_id"], study["structure_revision"])
+                        if structure_parent not in packaged_structures and structure_parent not in existing_structures:
+                            raise ValueError("Project archive study references a missing structure revision")
             db.executemany(
                 "INSERT INTO project_record_revisions VALUES(?,?,?,?,?,?)",
                 [(kind, identifier, revision, content, digest, created_at)
@@ -206,21 +242,24 @@ class ProjectRecordStore:
         return {"imported_records": len(revisions_by_id), "imported_revisions": len(prepared)}
 
     def import_study_package(self, package):
-        if not isinstance(package, dict) or package.get("package_schema_version") != "1.0" or package.get("package_type") != "study_with_device_revision":
+        if (not isinstance(package, dict) or package.get("package_schema_version") != "1.0"
+                or package.get("package_type") not in {"study_with_device_revision", "study_with_device_and_structure"}):
             raise ValueError("Unsupported study package")
         supplied_hash = package.get("package_sha256")
         body = {key: value for key, value in package.items() if key != "package_sha256"}
         if not isinstance(supplied_hash, str) or hashlib.sha256(self.canonical(body).encode("utf-8")).hexdigest() != supplied_hash:
             raise ValueError("Study package integrity check failed")
         records = {}
-        for kind in ("device", "study"):
+        kinds = ("device", "study", "structure") if package["package_type"] == "study_with_device_and_structure" else ("device", "study")
+        for kind in kinds:
             item = package.get(kind)
             if not isinstance(item, dict):
                 raise ValueError(f"Study package is missing its {kind} revision")
             source_revision = item.get("source_revision")
             if not isinstance(source_revision, int) or isinstance(source_revision, bool) or source_revision < 1:
                 raise ValueError(f"Study package has an invalid {kind} revision")
-            record = json.loads(self.canonical(RECORD_MODELS[kind].model_validate(item.get("record")).model_dump(mode="json")))
+            record = self.normalize_record(kind, item.get("record"))
+            record = json.loads(self.canonical(record))
             digest = hashlib.sha256(self.canonical(record).encode("utf-8")).hexdigest()
             if digest != item.get("record_sha256"):
                 raise ValueError(f"Study package {kind} hash mismatch")
@@ -229,6 +268,19 @@ class ProjectRecordStore:
         study_revision, study, _ = records["study"]
         if study["device_id"] != device["id"] or study["device_revision"] != device_revision:
             raise ValueError("Study package does not contain the exact parent device revision")
+        if study.get("structure_id") is not None:
+            if "structure" in records:
+                structure_revision, structure, _ = records["structure"]
+                if study["structure_id"] != structure["id"] or study["structure_revision"] != structure_revision:
+                    raise ValueError("Study package does not contain the exact linked structure revision")
+            else:
+                with self.connect() as db:
+                    exists = db.execute("SELECT 1 FROM project_record_revisions WHERE record_type='structure' AND id=? AND revision=?",
+                                        (study["structure_id"], study["structure_revision"])).fetchone()
+                if exists is None:
+                    raise ValueError("Study package requires its exact structure revision")
+        elif "structure" in records:
+            raise ValueError("Study package includes an unlinked structure revision")
         created = datetime.now(timezone.utc).isoformat()
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -256,7 +308,7 @@ class ProjectRecordStore:
         source_revision = bundle.get("source_revision")
         if not isinstance(source_revision, int) or isinstance(source_revision, bool) or source_revision < 1:
             raise ValueError("Project-record bundle has an invalid source revision")
-        canonical_payload = self.canonical(RECORD_MODELS[record_type].model_validate(payload).model_dump(mode="json"))
+        canonical_payload = self.canonical(self.normalize_record(record_type, payload))
         if hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest() != bundle.get("record_sha256"):
             raise ValueError("Project-record content hash mismatch")
         record = json.loads(canonical_payload)
@@ -271,6 +323,11 @@ class ProjectRecordStore:
                                     (record["device_id"], record["device_revision"])).fetchone()
                 if parent is None:
                     raise ValueError("Study bundle requires its exact device revision to be imported first")
+                if record.get("structure_id") is not None:
+                    structure = db.execute("SELECT 1 FROM project_record_revisions WHERE record_type='structure' AND id=? AND revision=?",
+                                           (record["structure_id"], record["structure_revision"])).fetchone()
+                    if structure is None:
+                        raise ValueError("Study bundle requires its exact structure revision to be imported first")
             created = datetime.now(timezone.utc).isoformat()
             db.execute("INSERT INTO project_record_revisions VALUES(?,?,?,?,?,?)",
                        (record_type, record["id"], source_revision, canonical_payload,
