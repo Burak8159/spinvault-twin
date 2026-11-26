@@ -342,6 +342,14 @@ def test_worker_parses_representative_real_mumax_smoke_output(tmp_path: Path) ->
     job_dir = settings.job_root / job.job_id
     assert (job_dir / "outputs" / "table.txt").exists()
     assert (job_dir / "outputs" / "references.bib").exists()
+    final_manifest = json.loads((job_dir / "artifacts.json").read_text(encoding="utf-8"))
+    assert final_manifest["schemaVersion"] == 2
+    entries = {item["path"]: item for item in final_manifest["files"]}
+    for relative in ("result.json", "status.json", "outputs/table.txt"):
+        payload = (job_dir / relative).read_bytes()
+        assert entries[relative]["sizeBytes"] == len(payload)
+        assert entries[relative]["sha256"] == hashlib.sha256(payload).hexdigest()
+    assert "artifacts.json" not in entries
 
 
 def test_worker_crash_failure_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

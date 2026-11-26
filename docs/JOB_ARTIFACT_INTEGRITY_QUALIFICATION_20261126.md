@@ -10,7 +10,7 @@ The read-only job reconciliation audit checks schema-2 size and digest values, r
 
 - Focused worker and reconciliation tests: **29 passed** (the full backend suite includes these cases).
 - Full backend test suite: **249 passed, 1 skipped**. The skip is an optional real-MuMax3-dependent test. One Starlette/httpx deprecation warning remains.
-- Regression cases cover exact hashes and sizes, full regular-file inventory, symlink exclusion, matching schema-2 verification, same-size tampering, size changes, legacy manifests, atomic-replace failure preservation, symlink exclusion, and worker output creation.
+- Regression cases cover exact hashes and sizes, full regular-file inventory, symlink exclusion, matching schema-2 verification, same-size tampering, size changes, legacy manifests, and atomic-replace failure preservation. An end-to-end mock worker lifecycle verifies the final result, status and solver output bytes against the emitted manifest.
 - `git diff --check`: pass.
 
 ## Limits
