@@ -1,5 +1,9 @@
 # SpinVault Twin
 
+## Build the local delivery archive
+
+From a committed checkout, run `python3 scripts/build_local_package.py`. The script builds a reproducible source-only ZIP from tracked files, writes a SHA-256 sidecar, preserves executable modes, and checks ZIP CRCs. It excludes the prior ZIPs, VCS data, local databases, caches, virtual environments, generated outputs, environment secrets, and the private Cloudflare config. The archive is a convenient local delivery artifact; it does not add solver acceptance, scientific calibration, or production deployment qualification.
+
 Digital twin platform for the SpinVault spintronic memory architecture.
 
 ## Run locally
