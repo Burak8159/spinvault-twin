@@ -134,8 +134,11 @@ class MaterialProperty(BaseModel):
 
     @model_validator(mode="after")
     def sourced_known_values(self):
-        if self.quantity.value is not None and not self.source_refs:
-            raise ValueError("Known material properties require at least one source reference")
+        has_known_quantity = self.quantity.value is not None or any(
+            condition.value is not None for condition in self.conditions.values()
+        )
+        if has_known_quantity and not self.source_refs:
+            raise ValueError("Known material property or condition values require at least one source reference")
         return self
 
 

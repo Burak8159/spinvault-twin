@@ -194,6 +194,13 @@ def test_material_record_round_trip_provenance_validation_and_archive(client, tm
     unknown_property["properties"][0]["source_refs"] = []
     assert client.post("/api/project-records/material", json={"record": unknown_property,
                        "expected_revision": 0}).status_code == 422
+    unsourced_condition = material_record("unsourced-condition")
+    unsourced_condition["properties"][0]["quantity"] = {
+        "value": None, "unit": None, "missing_reason": "Synthetic unknown property"
+    }
+    unsourced_condition["properties"][0]["source_refs"] = []
+    assert client.post("/api/project-records/material", json={"record": unsourced_condition,
+                       "expected_revision": 0}).status_code == 422
 
 
 def test_study_package_preserves_exact_parent_revision_atomically(tmp_path):
