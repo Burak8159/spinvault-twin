@@ -101,9 +101,17 @@ def build(output: Path) -> dict[str, object]:
     output = output.expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     sidecar = Path(str(output) + ".sha256")
+    if output.exists() or output.is_symlink() or sidecar.exists() or sidecar.is_symlink():
+        raise ValueError(f"refusing to overwrite existing package or checksum: {output}")
     fd, temporary_name = tempfile.mkstemp(prefix=f".{output.name}.", suffix=".tmp", dir=output.parent)
     os.close(fd)
     temporary = Path(temporary_name)
+    sidecar_fd, sidecar_temporary_name = tempfile.mkstemp(
+        prefix=f".{sidecar.name}.", suffix=".tmp", dir=output.parent
+    )
+    sidecar_temporary = Path(sidecar_temporary_name)
+    published_output = False
+    sidecar_descriptor_open = True
     try:
         with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
             for path, mode in sources:
@@ -122,12 +130,25 @@ def build(output: Path) -> dict[str, object]:
             if bad_member:
                 raise ValueError(f"ZIP CRC validation failed for {bad_member}")
         digest = hashlib.sha256(temporary.read_bytes()).hexdigest()
-        temporary.replace(output)
-        sidecar_tmp = Path(str(sidecar) + ".tmp")
-        sidecar_tmp.write_text(f"{digest}  {output.name}\n", encoding="ascii")
-        sidecar_tmp.replace(sidecar)
+        with os.fdopen(sidecar_fd, "w", encoding="ascii") as checksum:
+            sidecar_descriptor_open = False
+            checksum.write(f"{digest}  {output.name}\n")
+            checksum.flush()
+            os.fsync(checksum.fileno())
+        # Hard-link publication is atomic and fails if another process creates
+        # either destination after the preflight check. Never replace a prior ZIP.
+        os.link(temporary, output)
+        published_output = True
+        os.link(sidecar_temporary, sidecar)
+    except BaseException:
+        if published_output and output.exists() and output.stat().st_ino == temporary.stat().st_ino:
+            output.unlink()
+        raise
     finally:
+        if sidecar_descriptor_open:
+            os.close(sidecar_fd)
         temporary.unlink(missing_ok=True)
+        sidecar_temporary.unlink(missing_ok=True)
     return {
         "archive": str(output),
         "sha256": digest,
