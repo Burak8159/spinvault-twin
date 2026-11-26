@@ -133,10 +133,19 @@ function showStored(type, record) {
     $('study-revision').textContent = `Study ${record.id}, revision ${record.revision}; SHA-256 ${record.sha256}`;
   }
 }
-function download(name, content) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(content, null, 2)], {type: 'application/json'}));
+function downloadText(name, content) {
+  const url = URL.createObjectURL(new Blob([content], {type: 'application/json'}));
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = name; anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+async function downloadResponse(path, name) {
+  const response = await fetch(`${apiBase()}${path}`);
+  const raw = await response.text();
+  let payload;
+  try { payload = JSON.parse(raw); } catch { throw new Error(`Server returned invalid JSON (${response.status}).`); }
+  if (!response.ok) throw new Error(typeof payload.detail === 'string' ? payload.detail : `Request rejected (${response.status}).`);
+  downloadText(name, raw);
+  return payload;
 }
 
 $('device-form').onsubmit = async event => {
@@ -169,15 +178,14 @@ $('study-load').onclick = async () => {
 };
 for (const [buttonId, type, idField] of [['device-export', 'device', 'device-id']]) {
   $(buttonId).onclick = async () => {
-    try { const bundle = await request(`/api/project-records/${type}/${encodeURIComponent($(idField).value.trim())}/export`);
-      download(`${type}-${$(idField).value.trim()}-r${bundle.source_revision}.json`, bundle); $('result').textContent = JSON.stringify(bundle, null, 2); $('notice').textContent = `${type} record exported with hash manifest.`; }
+    try { const bundle = await downloadResponse(`/api/project-records/${type}/${encodeURIComponent($(idField).value.trim())}/export`, `${type}-${$(idField).value.trim()}-export.json`);
+      $('result').textContent = JSON.stringify(bundle, null, 2); $('notice').textContent = `${type} record exported with hash manifest.`; }
     catch (error) { $('notice').textContent = error.message; }
   };
 }
 $('study-export').onclick = async () => {
   try {
-    const packageData = await request(`/api/project-records/study/${encodeURIComponent($('study-id').value.trim())}/package`);
-    download(`study-${$('study-id').value.trim()}-with-linked-records.json`, packageData);
+    const packageData = await downloadResponse(`/api/project-records/study/${encodeURIComponent($('study-id').value.trim())}/package`, `study-${$('study-id').value.trim()}-with-linked-records.json`);
     $('result').textContent = JSON.stringify(packageData, null, 2);
     $('notice').textContent = packageData.package_type === 'study_with_device_and_structure'
       ? 'Study and its exact linked device and structure revisions exported as one hash-checked package.'
@@ -188,16 +196,16 @@ $('import').onclick = async () => {
   try {
     const file = $('bundle-file').files[0]; if (!file) throw new Error('Choose a JSON record bundle first.');
     if (file.size > 6 * 1024 * 1024) throw new Error('Bundle exceeds the 6 MiB limit.');
-    const bundle = JSON.parse(await file.text());
+    const raw = await file.text(); const bundle = JSON.parse(raw);
     if (['study_with_device_revision', 'study_with_device_and_structure'].includes(bundle.package_type)) {
-      const imported = await request('/api/project-records/study-package/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({package: bundle})});
+      const imported = await request('/api/project-records/study-package/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: `{"package":${raw}}`});
       showStored('study', imported); $('result').textContent = JSON.stringify(imported, null, 2);
       $('notice').textContent = bundle.package_type === 'study_with_device_and_structure'
         ? 'Study and its exact linked device and structure revisions imported as new records.'
         : 'Study and exact linked device revision imported as new records.';
     } else {
       if (file.size > 3 * 1024 * 1024) throw new Error('Record bundle exceeds the 3 MiB limit.');
-      const imported = await request('/api/project-records/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({bundle})});
+      const imported = await request('/api/project-records/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: `{"bundle":${raw}}`});
       showStored(imported.record_type, imported); $('result').textContent = JSON.stringify(imported, null, 2);
       $('notice').textContent = 'Bundle hash verified and imported as a new record.';
     }
@@ -229,8 +237,7 @@ $('refresh').onclick = async () => {
 $('archive-export').onclick = async () => {
   const status = $('archive-status'); status.textContent = 'Preparing project archive…';
   try {
-    const archive = await request('/api/project-records/archive');
-    download(`spinvault-project-records-${new Date().toISOString().slice(0, 10)}.json`, archive);
+    const archive = await downloadResponse('/api/project-records/archive', `spinvault-project-records-${new Date().toISOString().slice(0, 10)}.json`);
     status.textContent = `Exported ${archive.records.length} revision(s) with archive SHA-256 ${archive.archive_sha256}. Scientific files are not included.`;
   } catch (error) { status.textContent = error.message; }
 };
@@ -240,9 +247,9 @@ $('archive-import').onclick = async () => {
     const file = $('archive-file').files[0];
     if (!file) throw new Error('Choose a project archive first.');
     if (file.size > 12 * 1024 * 1024) throw new Error('Archive exceeds the 12 MiB limit.');
-    const archive = JSON.parse(await file.text());
+    const raw = await file.text(); JSON.parse(raw);
     const imported = await request('/api/project-records/archive/import', {
-      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({archive})
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: `{"archive":${raw}}`
     });
     status.textContent = `Imported ${imported.imported_records} record(s) and ${imported.imported_revisions} revision(s). No existing record was overwritten.`;
     await $('refresh').onclick();

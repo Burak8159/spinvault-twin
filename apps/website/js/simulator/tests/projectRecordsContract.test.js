@@ -54,3 +54,20 @@ test('repeated record actions have accessible names that identify their targets'
   assert.match(script, /Load \$\{type\} \$\{record\.id\} revision \$\{record\.revision\}/);
   assert.match(script, /Inspect \$\{item\.id\} revision \$\{item\.revision\}/);
 });
+
+test('hash-checked exports preserve the server JSON text instead of reserializing numbers', () => {
+  assert.match(script, /async function downloadResponse\(path, name\)/);
+  assert.match(script, /const raw = await response\.text\(\)/);
+  assert.match(script, /downloadText\(name, raw\)/);
+  assert.match(script, /downloadResponse\('\/api\/project-records\/archive'/);
+  assert.match(script, /downloadResponse\(`\/api\/project-records\/study/);
+  assert.doesNotMatch(script, /download\([^\n]+, archive\)/);
+});
+
+test('hash-checked imports preserve raw numeric tokens in record, study, and archive envelopes', () => {
+  assert.match(script, /const raw = await file\.text\(\); const bundle = JSON\.parse\(raw\)/);
+  assert.match(script, /body: `\{"package":\$\{raw\}\}`/);
+  assert.match(script, /body: `\{"bundle":\$\{raw\}\}`/);
+  assert.match(script, /body: `\{"archive":\$\{raw\}\}`/);
+  assert.match(script, /const raw = await file\.text\(\); JSON\.parse\(raw\)/);
+});
