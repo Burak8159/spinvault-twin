@@ -49,3 +49,8 @@ test('saved study list exposes its workflow status and exact structure revision 
   assert.match(script, /\$\{record\.record\.structure_id\}@\$\{record\.record\.structure_revision\}/);
   assert.match(script, /'none linked'/);
 });
+
+test('repeated record actions have accessible names that identify their targets', () => {
+  assert.match(script, /Load \$\{type\} \$\{record\.id\} revision \$\{record\.revision\}/);
+  assert.match(script, /Inspect \$\{item\.id\} revision \$\{item\.revision\}/);
+});

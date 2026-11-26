@@ -218,6 +218,7 @@ $('refresh').onclick = async () => {
           description.textContent = `study: ${record.id} · r${record.revision} · ${record.record.title} · workflow: ${record.record.status} (not scientific acceptance) · structure: ${structure} `;
         } else description.textContent = `device: ${record.id} · r${record.revision} · ${record.record.title} `;
         const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Load';
+        button.setAttribute('aria-label', `Load ${type} ${record.id} revision ${record.revision}`);
         button.addEventListener('click', () => showStored(type, record)); item.append(description, button); list.append(item);
       }
     }
@@ -310,6 +311,7 @@ $('structure-refresh').onclick = async () => {
       const li = document.createElement('li'); const label = document.createElement('span');
       label.textContent = `${item.id} · r${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status} · transport ${item.record.transport_validated ? 'validated' : 'not validated'} `;
       const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Inspect record';
+      button.setAttribute('aria-label', `Inspect ${item.id} revision ${item.revision}`);
       button.addEventListener('click',async()=>{try{const detail=await request(`/api/project-records/structure/${encodeURIComponent(item.id)}?revision=${item.revision}`);$('structure-detail-summary').textContent=`${item.id} · revision ${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status} · transport ${item.record.transport_validated?'validated':'not validated'}.`;renderStructureSummary(detail);$('structure-detail').textContent=JSON.stringify(detail,null,2);$('structure-json-details').open=false;}catch(error){status.textContent=error.message;}});
       li.append(label,button); list.append(li);
     }
