@@ -11,6 +11,10 @@ import { join } from "node:path";
 const websiteRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const required = [
   "simulator.html",
+  "requirements.html",
+  "requirements.js",
+  "project_records.html",
+  "project_records.js",
   "simulator.css",
   "js/simulator/main.js",
   "js/simulator/lib/types.d.ts",

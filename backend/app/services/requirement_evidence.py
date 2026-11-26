@@ -67,5 +67,9 @@ def evaluate_verified(requirement, evidence_id, root):
     observation['qualified'] = authenticated and review.get('status') == 'QUALIFIED' and isinstance(review.get('reviewer'),str) and bool(review['reviewer'].strip()) and isinstance(review.get('evidence_ref'),str) and bool(review['evidence_ref'].strip()) and isinstance(review.get('scope'),str) and bool(review['scope'].strip())
     observation['source'] = 'sha256:' + digest
     result = evaluate_requirement(requirement, observation)
+    provenance=observation.get('provenance') if isinstance(observation.get('provenance'),dict) else {}
     return {**result, 'evidence_id': evidence_id, 'artifact_sha256': digest,
-            'review_integrity_verified': authenticated, 'review_scope':review.get('scope','unspecified'), 'reviewer': review.get('reviewer'), 'review_evidence_ref': review.get('evidence_ref')}
+            'review_integrity_verified': authenticated, 'review_scope':review.get('scope','unspecified'), 'reviewer': review.get('reviewer'), 'review_evidence_ref': review.get('evidence_ref'),
+            'observation_metric':observation.get('metric'),'observation_unit':observation.get('unit'),'observation_value':observation.get('value'),
+            'observation_conditions':observation.get('conditions'),
+            'observation_provenance':{k:provenance.get(k) for k in ('source_log_sha256','same_cycle_convergence_announcement','continued_after_announcement','row_line','printed_value','cycle_gate_summary')}}

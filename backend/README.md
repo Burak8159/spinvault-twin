@@ -118,6 +118,18 @@ python3.11 -m venv .venv
 
 The local app accepts the default preview origins and the configured `SPINVAULT_WEB_PORT`. `SPINVAULT_CORS_ORIGINS` replaces the default list with a comma-separated list. Direct `file://` pages (`Origin: null`) are not allowed by default; use the local website server. The SpinVault public website origins are included in the default list; override the list to limit access to local origins if required.
 
+### Device and study records
+
+Local record routes use `SPINVAULT_PROJECT_RECORDS_DB` (default `project_records.sqlite` beside the requirement database). Device records preserve ordered layers and explicit unknowns; known numeric quantities require units. Study records must reference an existing immutable device revision. Records are append-only with SHA-256, optimistic revision checks and migration version 1.
+
+- `GET /api/project-records/device` or `/study` lists the latest revisions.
+- `GET /api/project-records/{type}/{id}?revision=N` reads a revision.
+- `POST /api/project-records/{type}` saves `{record, expected_revision}`.
+- `GET /api/project-records/{type}/{id}/export?revision=N` returns a hash-checked JSON bundle.
+- `POST /api/project-records/import` accepts `{bundle}` and imports only when the record ID is new; it never overwrites an existing ID.
+
+These endpoints accept JSON only and do not resolve user-supplied filesystem paths. The API foundation is tested locally; no rich device/structure editor, material registry, scientific artifact access service, schema upgrade beyond v1, or project-wide atomic study export is claimed.
+
 ### Requirements workspace
 
 Open `/requirements.html` on the local website. Project requirements default to `backend/data/requirements.sqlite`; set `SPINVAULT_REQUIREMENTS_DB` to choose another location. The UI supports immutable revisions, an expected-revision conflict check, project load/save, and JSON export. Browser-only save is also available. The default storage location is explicit and separate from the evidence directory.

@@ -13,6 +13,10 @@ const websiteRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const targets = [
   join(websiteRoot, "simulator.html"),
   join(websiteRoot, "simulator.css"),
+  join(websiteRoot, "requirements.html"),
+  join(websiteRoot, "requirements.js"),
+  join(websiteRoot, "project_records.html"),
+  join(websiteRoot, "project_records.js"),
   join(websiteRoot, "js/simulator"),
   join(websiteRoot, "js/api")
 ];
