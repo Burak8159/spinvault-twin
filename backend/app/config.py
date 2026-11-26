@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     data_dir: Path = BACKEND_ROOT / "data" / "jobs"
     job_database: Path = BACKEND_ROOT / "data" / "jobs.sqlite3"
     requirements_db: Path = BACKEND_ROOT / "data" / "requirements.sqlite"
+    artifact_root: Path | None = None
+    artifact_manifest: str = "artifact-manifest.json"
+    artifact_max_file_bytes: int = Field(default=250 * 1024 * 1024, ge=1)
 
     # MuMax3: read MUMAX3_* without requiring the SPINVAULT_ prefix.
     mumax3_binary: str | None = Field(

@@ -162,8 +162,18 @@ Local record routes use `SPINVAULT_PROJECT_RECORDS_DB` (default `project_records
 - `POST /api/project-records/import` accepts `{bundle}` and imports only when the record ID is new; it never overwrites an existing ID.
 - `GET /api/project-records/study/{id}/package?revision=N` exports a study together with the exact device revision it references.
 - `POST /api/project-records/study-package/import` atomically imports that pair, preserves both revision numbers, verifies nested and package hashes, and rejects either ID collision.
+- `GET /api/project-records/archive` exports every device/study revision into one bounded, SHA-256 protected JSON archive.
+- `POST /api/project-records/archive/import` validates the entire archive, exact study-to-device links, revision continuity, and all hashes before atomically importing it. Any ID collision or invalid entry rejects the whole archive without partial writes.
 
-These endpoints accept JSON only and do not resolve user-supplied filesystem paths. The local UI provides ordered layer fields while other advanced structures remain explicit JSON fields; no material registry, scientific artifact access service, schema upgrade beyond v1, or project-wide atomic study export is claimed.
+The project archive contains versioned project records only. It deliberately does not package scientific files, simulation outputs, secrets, evidence-signing keys, or material data files.
+
+These endpoints accept JSON only and do not resolve user-supplied filesystem paths. The local UI provides ordered layer fields while other advanced structures remain explicit JSON fields; no material registry, schema upgrade beyond v1, or project-wide atomic study export is claimed.
+
+### Catalogued research artifacts
+
+The optional read-only artifact API uses `SPINVAULT_ARTIFACT_ROOT` and a JSON file selected by `SPINVAULT_ARTIFACT_MANIFEST` (default `artifact-manifest.json`). The manifest is an object with `schema_version: "1.0"` and an `artifacts` array. Each entry follows the Phase 1 artifact contract: `id`, root-relative `relative_path`, lowercase SHA-256, exact byte count, `availability`, `access`, and `source_revision`. Unknown files are never enumerated or served. Invalid paths, duplicate IDs, symlinks escaping the root, and changed file size/hash are rejected. The manifest is capped at 2 MiB and 5,000 records; downloads are capped by `SPINVAULT_ARTIFACT_MAX_FILE_BYTES` (default 250 MiB).
+
+`GET /api/artifacts` and `GET /api/artifacts/{id}` return catalog metadata without exposing root-relative paths. `GET /api/artifacts/{id}/content` serves only entries marked both `present` and `reviewed_public`; `private` entries remain non-downloadable. The requirements page can refresh this list and verifies SHA-256 again in the browser before saving a download. Leave this service unset to disable it. This is a local, read-only convenience, not a public evidence-sharing service: do not place private scientific outputs in a `reviewed_public` manifest, and do not expose the API publicly without authentication and access control.
 
 Back up or restore the SQLite project-record store with `python scripts/backup_project_records.py backup DB NEW_BACKUP_DIR` and `python scripts/backup_project_records.py restore BACKUP_DIR NEW_DB`. Both operations refuse overwrite. The backup includes a SHA-256/byte-count manifest and SQLite integrity check; restore verifies the hash and supported schema version before atomically creating a new database. Keep backups in a separately managed, access-controlled location; this local tool does not itself provide off-device backup.
 

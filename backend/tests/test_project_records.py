@@ -159,3 +159,75 @@ def test_study_package_preserves_exact_parent_revision_atomically(tmp_path):
     forged["package_sha256"] = hashlib.sha256(source.canonical(forged_body).encode("utf-8")).hexdigest()
     with pytest.raises(ValueError, match="exact parent"):
         ProjectRecordStore(tmp_path / "forged.sqlite").import_study_package(forged)
+
+
+def test_project_archive_round_trip_preserves_all_revisions_and_links(tmp_path):
+    source = ProjectRecordStore(tmp_path / "source.sqlite")
+    device_v1 = source.save("device", device_record("archive-device"), 0)
+    device_v2_payload = copy.deepcopy(device_v1["record"])
+    device_v2_payload["metadata"]["revision_note"] = "second revision"
+    device_v2 = source.save("device", device_v2_payload, 1)
+    study = {"schema_version": "1.0", "record_type": "study", "id": "archive-study",
+             "title": "Archive fixture", "source_refs": [], "metadata": {},
+             "device_id": "archive-device", "device_revision": 1,
+             "scientific_question": "Does a project archive preserve exact revisions?",
+             "method": "synthetic test", "parameter_set": {}, "status": "draft"}
+    source.save("study", study, 0)
+
+    archive = source.export_project_archive()
+    destination = ProjectRecordStore(tmp_path / "restored.sqlite")
+    imported = destination.import_project_archive(archive)
+    assert imported == {"imported_records": 2, "imported_revisions": 3}
+    assert destination.get("device", "archive-device", 1)["sha256"] == device_v1["sha256"]
+    assert destination.get("device", "archive-device", 2)["sha256"] == device_v2["sha256"]
+    assert destination.get("study", "archive-study")["record"]["device_revision"] == 1
+
+
+def test_project_archive_rejects_tampering_collision_and_missing_parent_atomically(tmp_path):
+    source = ProjectRecordStore(tmp_path / "source.sqlite")
+    source.save("device", device_record("archive-parent"), 0)
+    source.save("device", device_record("archive-unconflicted"), 0)
+    archive = source.export_project_archive()
+
+    tampered = copy.deepcopy(archive)
+    tampered["records"][0]["record"]["title"] = "tampered"
+    with pytest.raises(ValueError, match="integrity"):
+        ProjectRecordStore(tmp_path / "tampered.sqlite").import_project_archive(tampered)
+
+    destination = ProjectRecordStore(tmp_path / "destination.sqlite")
+    destination.save("device", device_record("archive-parent"), 0)
+    with pytest.raises(ProjectRecordConflict):
+        destination.import_project_archive(archive)
+    assert len(destination.list("device")) == 1
+    assert destination.get("device", "archive-unconflicted") is None
+
+    study_only = copy.deepcopy(archive)
+    orphan = {"schema_version": "1.0", "record_type": "study", "id": "orphan",
+                   "title": "Orphan", "source_refs": [], "metadata": {},
+                   "device_id": "absent-device", "device_revision": 1,
+                   "scientific_question": "Missing parent test", "method": "test",
+                   "parameter_set": {}, "status": "draft"}
+    study_only["records"] = [{"record_type": "study", "id": "orphan", "revision": 1,
+        "record": orphan, "sha256": hashlib.sha256(source.canonical(orphan).encode()).hexdigest(),
+        "created_at": "2026-11-26T10:00:00+00:00"}]
+    study_only["archive_sha256"] = hashlib.sha256(
+        source.canonical({key: value for key, value in study_only.items() if key != "archive_sha256"}).encode()
+    ).hexdigest()
+    with pytest.raises(ValueError, match="missing device"):
+        ProjectRecordStore(tmp_path / "orphan.sqlite").import_project_archive(study_only)
+
+
+def test_project_archive_api_import_is_atomic_and_hash_checked(client, tmp_path, monkeypatch):
+    source_path = tmp_path / "archive-source.sqlite"
+    source = ProjectRecordStore(source_path)
+    source.save("device", device_record("api-archive-device"), 0)
+    archive = source.export_project_archive()
+    monkeypatch.setenv("SPINVAULT_PROJECT_RECORDS_DB", str(tmp_path / "archive-target.sqlite"))
+    response = client.post("/api/project-records/archive/import", json={"archive": archive})
+    assert response.status_code == 200, response.json()
+    assert response.json() == {"imported_records": 1, "imported_revisions": 1}
+    exported = client.get("/api/project-records/archive")
+    assert exported.status_code == 200
+    assert exported.json()["archive_sha256"] == archive["archive_sha256"]
+    duplicate = client.post("/api/project-records/archive/import", json={"archive": archive})
+    assert duplicate.status_code == 409

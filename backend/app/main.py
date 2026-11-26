@@ -13,6 +13,7 @@ from app.api.routes import router as simulations_router
 from app.config import get_settings
 from app.api.requirements import router as requirements_router
 from app.api.project_records import router as project_records_router
+from app.api.artifacts import router as artifacts_router
 
 
 class PrivateNetworkCorsMiddleware(CORSMiddleware):
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(simulations_router, prefix="/api")
     app.include_router(requirements_router, prefix="/api")
     app.include_router(project_records_router, prefix="/api")
+    app.include_router(artifacts_router, prefix="/api")
 
     @app.get("/health")
     def health() -> dict[str, object]:

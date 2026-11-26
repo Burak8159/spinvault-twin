@@ -57,6 +57,18 @@ class ImportStudyPackage(BaseModel):
         return value
 
 
+class ImportProjectArchive(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    archive: dict
+
+    @field_validator("archive")
+    @classmethod
+    def bounded_archive(cls, value):
+        if len(json.dumps(value, allow_nan=False).encode("utf-8")) > 12 * 1024 * 1024:
+            raise ValueError("Project archive exceeds the 12 MiB limit")
+        return value
+
+
 @router.post("/project-records/import")
 def import_record(request: ImportBundle):
     try:
@@ -82,6 +94,24 @@ def export_study_package(identifier: str, revision: int | None = None):
 def import_study_package(request: ImportStudyPackage):
     try:
         return store().import_study_package(request.package)
+    except ProjectRecordConflict as error:
+        raise HTTPException(409, str(error))
+    except (ValueError, TypeError, KeyError) as error:
+        raise HTTPException(422, str(error))
+
+
+@router.get("/project-records/archive")
+def export_project_archive():
+    try:
+        return store().export_project_archive()
+    except ValueError as error:
+        raise HTTPException(413 if "limit" in str(error) else 422, str(error))
+
+
+@router.post("/project-records/archive/import")
+def import_project_archive(request: ImportProjectArchive):
+    try:
+        return store().import_project_archive(request.archive)
     except ProjectRecordConflict as error:
         raise HTTPException(409, str(error))
     except (ValueError, TypeError, KeyError) as error:

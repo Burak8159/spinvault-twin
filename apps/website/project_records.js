@@ -203,3 +203,25 @@ $('refresh').onclick = async () => {
     $('notice').textContent = `Loaded ${list.children.length} record(s).`;
   } catch (error) { $('notice').textContent = error.message; }
 };
+$('archive-export').onclick = async () => {
+  const status = $('archive-status'); status.textContent = 'Preparing project archive…';
+  try {
+    const archive = await request('/api/project-records/archive');
+    download(`spinvault-project-records-${new Date().toISOString().slice(0, 10)}.json`, archive);
+    status.textContent = `Exported ${archive.records.length} revision(s) with archive SHA-256 ${archive.archive_sha256}. Scientific files are not included.`;
+  } catch (error) { status.textContent = error.message; }
+};
+$('archive-import').onclick = async () => {
+  const status = $('archive-status');
+  try {
+    const file = $('archive-file').files[0];
+    if (!file) throw new Error('Choose a project archive first.');
+    if (file.size > 12 * 1024 * 1024) throw new Error('Archive exceeds the 12 MiB limit.');
+    const archive = JSON.parse(await file.text());
+    const imported = await request('/api/project-records/archive/import', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({archive})
+    });
+    status.textContent = `Imported ${imported.imported_records} record(s) and ${imported.imported_revisions} revision(s). No existing record was overwritten.`;
+    await $('refresh').onclick();
+  } catch (error) { status.textContent = error.message; }
+};

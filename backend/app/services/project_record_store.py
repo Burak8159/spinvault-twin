@@ -107,6 +107,104 @@ class ProjectRecordStore:
         body["package_sha256"] = hashlib.sha256(self.canonical(body).encode("utf-8")).hexdigest()
         return body
 
+    def export_project_archive(self):
+        """Export all device/study revisions as one content-hashed JSON archive."""
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT * FROM project_record_revisions ORDER BY record_type,id,revision"
+            ).fetchall()
+        if len(rows) > 5000:
+            raise ValueError("Project archive exceeds the 5,000 revision limit")
+        records = [self.record(row) for row in rows]
+        body = {
+            "archive_schema_version": "1.0",
+            "archive_type": "project_records",
+            "records": records,
+        }
+        body["archive_sha256"] = hashlib.sha256(self.canonical(body).encode("utf-8")).hexdigest()
+        if len(self.canonical(body).encode("utf-8")) > 12 * 1024 * 1024:
+            raise ValueError("Project archive exceeds the 12 MiB limit")
+        return body
+
+    def import_project_archive(self, archive):
+        """Atomically import previously unseen record IDs and all their revisions."""
+        if (not isinstance(archive, dict) or archive.get("archive_schema_version") != "1.0"
+                or archive.get("archive_type") != "project_records"):
+            raise ValueError("Unsupported project archive")
+        supplied_hash = archive.get("archive_sha256")
+        body = {key: value for key, value in archive.items() if key != "archive_sha256"}
+        if (not isinstance(supplied_hash, str)
+                or hashlib.sha256(self.canonical(body).encode("utf-8")).hexdigest() != supplied_hash):
+            raise ValueError("Project archive integrity check failed")
+        entries = archive.get("records")
+        if not isinstance(entries, list) or len(entries) > 5000:
+            raise ValueError("Project archive has an invalid record list")
+        prepared = []
+        seen = set()
+        revisions_by_id = {}
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise ValueError("Project archive contains an invalid record entry")
+            kind = entry.get("record_type")
+            if kind not in RECORD_MODELS:
+                raise ValueError("Project archive contains an unsupported record type")
+            revision = entry.get("revision")
+            if not isinstance(revision, int) or isinstance(revision, bool) or revision < 1:
+                raise ValueError("Project archive contains an invalid revision number")
+            record = RECORD_MODELS[kind].model_validate(entry.get("record")).model_dump(mode="json")
+            if record["record_type"] != kind:
+                raise ValueError("Project archive record type does not match its content")
+            key = (kind, record["id"], revision)
+            if key in seen:
+                raise ValueError("Project archive contains a duplicate revision")
+            seen.add(key)
+            digest = hashlib.sha256(self.canonical(record).encode("utf-8")).hexdigest()
+            if digest != entry.get("sha256"):
+                raise ValueError("Project archive record hash mismatch")
+            created_at = entry.get("created_at")
+            if not isinstance(created_at, str) or len(created_at) > 64:
+                raise ValueError("Project archive contains an invalid creation timestamp")
+            try:
+                datetime.fromisoformat(created_at)
+            except ValueError as error:
+                raise ValueError("Project archive contains an invalid creation timestamp") from error
+            prepared.append((kind, record["id"], revision, self.canonical(record), digest, created_at))
+            revisions_by_id.setdefault((kind, record["id"]), set()).add(revision)
+
+        for (kind, identifier), revisions in revisions_by_id.items():
+            if revisions != set(range(1, max(revisions) + 1)):
+                raise ValueError(f"Project archive has a revision gap for {kind} {identifier}")
+        packaged_devices = {
+            (identifier, revision) for kind, identifier, revision, *_ in prepared if kind == "device"
+        }
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            for kind, identifier in revisions_by_id:
+                if db.execute(
+                    "SELECT 1 FROM project_record_revisions WHERE record_type=? AND id=? LIMIT 1",
+                    (kind, identifier),
+                ).fetchone():
+                    raise ProjectRecordConflict(
+                        f"Project archive {kind} ID {identifier} already exists; nothing was imported"
+                    )
+            existing_devices = {
+                (row[0], row[1]) for row in db.execute(
+                    "SELECT id,revision FROM project_record_revisions WHERE record_type='device'"
+                )
+            }
+            for kind, _identifier, _revision, content, _digest, _created_at in prepared:
+                if kind == "study":
+                    study = json.loads(content)
+                    parent = (study["device_id"], study["device_revision"])
+                    if parent not in packaged_devices and parent not in existing_devices:
+                        raise ValueError("Project archive study references a missing device revision")
+            db.executemany(
+                "INSERT INTO project_record_revisions VALUES(?,?,?,?,?,?)",
+                [(kind, identifier, revision, content, digest, created_at)
+                 for kind, identifier, revision, content, digest, created_at in prepared],
+            )
+        return {"imported_records": len(revisions_by_id), "imported_revisions": len(prepared)}
+
     def import_study_package(self, package):
         if not isinstance(package, dict) or package.get("package_schema_version") != "1.0" or package.get("package_type") != "study_with_device_revision":
             raise ValueError("Unsupported study package")
