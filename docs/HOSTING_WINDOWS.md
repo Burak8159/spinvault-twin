@@ -2,10 +2,14 @@
 
 This is a home-PC host. The website and Twin API stay on `127.0.0.1`. Cloudflare
 opens an outbound tunnel so you do **not** port-forward 80/443 and you do **not**
-bind the Python servers to the public internet.
+bind the Python servers to the public internet. The public helper pauses before
+starting and requires an explicit confirmation that Cloudflare Access is already
+protecting the hostname. The confirmation is an operator check, not an automatic
+verification of Cloudflare configuration.
 
-Anyone who can open `https://spinvault.biz` can submit Twin jobs that run on this
-PC. Keep the window closed when you are not demoing.
+Requests that reach the public site can submit Twin jobs that run on this PC.
+Only expose it to intended, authenticated users; keep the host window closed when
+you are not actively demoing.
 
 ## One-time Cloudflare setup
 
@@ -40,9 +44,18 @@ the config file and set a user environment variable
 
 ## Every time you want the public site live
 
-1. On the Windows PC, extract/open this repo.
-2. Double-click **`HOST_ON_WINDOWS.bat`**.
-3. Leave that window open. Sleep/hibernate will take the site offline.
+1. In Cloudflare Zero Trust, create a self-hosted Access application covering
+   both `spinvault.biz` and `www.spinvault.biz`, all paths (especially `/api/*`).
+2. Add an allow policy limited to the intended team identities and ensure there
+   is no bypass or public policy. Do not use “everyone” as the allowed audience.
+3. Verify in a private browser that the site and `/api/solvers` require login,
+   then verify an authenticated intended user can reach the app.
+4. On the Windows PC, extract/open this repo and double-click
+   **`HOST_ON_WINDOWS.bat`**. At the prompt, type `ACCESS_CONFIGURED` only after
+   completing and checking steps 1–3. Otherwise cancel and use local-only
+   `RUN_ON_WINDOWS.bat`.
+5. Leave the host window open while demoing. Sleep/hibernate takes the site
+   offline; close the window when the demo is over.
 
 Local URLs still work:
 

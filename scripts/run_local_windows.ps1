@@ -179,6 +179,15 @@ function Wait-ForApi {
 }
 
 try {
+    if ($Tunnel -and $PublicDomain) {
+        Write-Host "Public tunnel requested for https://$PublicDomain."
+        Write-Host "Before continuing, Cloudflare Access must protect the entire hostname, including /api/*, with an allow policy for intended users and no bypass policy."
+        $AccessConfirmation = Read-Host 'After verifying the Access policy, type ACCESS_CONFIGURED to continue'
+        if ($AccessConfirmation -cne "ACCESS_CONFIGURED") {
+            throw "Public tunnel cancelled. Configure and verify Cloudflare Access before retrying."
+        }
+    }
+
     if (-not (Test-PortAvailable $ApiPort)) {
         throw "API port $ApiPort is already in use. Close the other program and try again."
     }
