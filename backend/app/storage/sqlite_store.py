@@ -6,6 +6,9 @@ import sqlite3
 from pathlib import Path
 
 from app.models.jobs import JobRecord
+from app.models.jobs import JobWarning
+from app.models.provenance import utc_now
+from app.workers import process_check
 
 
 class SQLiteJobStore:
@@ -22,7 +25,7 @@ class SQLiteJobStore:
         with self._connect() as connection:
             connection.execute("PRAGMA journal_mode = WAL")
             version = int(connection.execute("PRAGMA user_version").fetchone()[0])
-            if version > 1:
+            if version > 2:
                 raise RuntimeError(f"Unsupported job database schema version: {version}")
         with self._connect() as connection:
             connection.execute(
@@ -33,7 +36,6 @@ class SQLiteJobStore:
                     updated_at TEXT NOT NULL
                 )"""
             )
-            connection.execute("PRAGMA user_version = 1")
             connection.execute(
                 """CREATE TABLE IF NOT EXISTS simulation_queue (
                     job_id TEXT PRIMARY KEY,
@@ -46,6 +48,15 @@ class SQLiteJobStore:
                     requested_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
                 )"""
             )
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS simulation_claims (
+                    job_id TEXT PRIMARY KEY,
+                    owner_host TEXT NOT NULL,
+                    owner_pid INTEGER NOT NULL,
+                    claimed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+                )"""
+            )
+            connection.execute("PRAGMA user_version = 2")
 
     def enqueue_job(self, job: JobRecord) -> JobRecord:
         """Atomically persist the queued record and its runnable queue entry."""
@@ -100,3 +111,64 @@ class SQLiteJobStore:
             if cursor.rowcount != 1:
                 raise KeyError(f"Job not found: {job.job_id}")
         return job.model_copy(deep=True)
+
+    def mark_interrupted(self, job_id: str, owner_host: str, owner_pid: int) -> bool:
+        """Atomically mark a confirmed-dead local claim; never requeue partial work."""
+        import socket
+
+        if owner_host != socket.gethostname() or process_check.process_is_alive(owner_pid):
+            return False
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            claim = connection.execute(
+                "SELECT owner_host, owner_pid FROM simulation_claims WHERE job_id = ?",
+                (job_id,),
+            ).fetchone()
+            if (
+                claim is None
+                or claim["owner_host"] != owner_host
+                or int(claim["owner_pid"]) != owner_pid
+                or claim["owner_host"] != socket.gethostname()
+                or process_check.process_is_alive(int(claim["owner_pid"]))
+            ):
+                connection.rollback()
+                return False
+            row = connection.execute("SELECT payload FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+            if row is None:
+                connection.execute("DELETE FROM simulation_claims WHERE job_id = ?", (job_id,))
+                connection.execute("DELETE FROM simulation_cancellations WHERE job_id = ?", (job_id,))
+                connection.commit()
+                return False
+            job = JobRecord.model_validate_json(row["payload"])
+            if job.status in {"complete", "failed", "not_configured", "interrupted"}:
+                connection.execute("DELETE FROM simulation_claims WHERE job_id = ?", (job_id,))
+                connection.execute("DELETE FROM simulation_cancellations WHERE job_id = ?", (job_id,))
+                connection.commit()
+                return False
+
+            job.status = "interrupted"
+            job.progress_phase = "interrupted"
+            job.updated_at = utc_now()
+            job.completed_at = job.updated_at
+            if not any(warning.code == "worker_interrupted" for warning in job.warnings):
+                job.warnings.append(
+                    JobWarning(
+                        code="worker_interrupted",
+                        message=(
+                            "The worker process ended before this job could be confirmed complete. "
+                            "Outputs may be partial; inspect artifacts and confirm solver exit before retrying."
+                        ),
+                    )
+                )
+                job.provenance.notes.append(
+                    "Job marked interrupted after its local worker process was confirmed absent; "
+                    "no automatic retry was performed."
+                )
+            connection.execute(
+                "UPDATE jobs SET payload = ?, updated_at = ? WHERE job_id = ?",
+                (job.model_dump_json(by_alias=True), job.updated_at.isoformat(), job_id),
+            )
+            connection.execute("DELETE FROM simulation_claims WHERE job_id = ?", (job_id,))
+            connection.execute("DELETE FROM simulation_cancellations WHERE job_id = ?", (job_id,))
+            connection.commit()
+            return True

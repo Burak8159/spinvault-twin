@@ -76,6 +76,7 @@ describe("remote API client", () => {
       assert.equal(job.status, "not_configured");
       assert.deepEqual(seen, ["queued", "running", "not_configured"]);
       assert.equal(isTerminalJobStatus("not_configured"), true);
+      assert.equal(isTerminalJobStatus("interrupted"), true);
       assert.equal(isTerminalJobStatus("running"), false);
     } finally {
       globalThis.fetch = originalFetch;

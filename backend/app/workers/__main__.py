@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from app.api.deps import get_job_store, get_local_worker, get_simulation_queue
 from app.config import get_settings
+from app.workers.recovery import reconcile_interrupted_jobs
 
 
 def main() -> None:
@@ -20,6 +21,9 @@ def main() -> None:
         )
     _store = get_job_store()
     _queue = get_simulation_queue()
+    recovered = reconcile_interrupted_jobs(_store, _queue)
+    if recovered:
+        print(f"Marked {len(recovered)} confirmed orphaned job(s) interrupted; none were retried.")
     worker = get_local_worker()
     print(
         f"SpinVault local worker {worker.worker_id} "

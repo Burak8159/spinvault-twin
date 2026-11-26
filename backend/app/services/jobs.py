@@ -164,7 +164,7 @@ class JobService:
         if job is None:
             return None
 
-        terminal = {"complete", "failed", "cancelled", "not_configured"}
+        terminal = {"complete", "failed", "cancelled", "interrupted", "not_configured"}
         if job.status in terminal:
             return job
 

@@ -117,6 +117,17 @@ describe("demo vs physical labeling", () => {
     assert.match(message?.title ?? "", /not configured/i);
   });
 
+  it("warns that interrupted outputs may be partial", () => {
+    const message = resultsPanelMessage({
+      status: "interrupted",
+      result: null,
+      state: { solverTarget: "mumax3" },
+      error: null
+    });
+    assert.equal(message.kind, "warning");
+    assert.match(message.body, /outputs may be partial/i);
+  });
+
   it("labels mumax artifacts with modelKind when present", () => {
     const artifacts = buildArtifactView({
       jobId: "job_v0",

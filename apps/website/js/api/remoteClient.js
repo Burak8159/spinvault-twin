@@ -12,6 +12,7 @@ export const TERMINAL_JOB_STATUSES = new Set([
   "complete",
   "failed",
   "cancelled",
+  "interrupted",
   "not_configured"
 ]);
 
@@ -300,7 +301,7 @@ export async function pollSimulationJob(jobId, options = {}) {
     if (TERMINAL_JOB_STATUSES.has(last.status)) return last;
     if (last.status === "queued" && Date.now() - started > 12_000) {
       throw new ApiClientError(
-        "The API accepted the job but the worker never started it. Run this repo's FastAPI with SPINVAULT_WORKER_ENABLED=true (in-process worker). A separate `python -m app.workers` process cannot drain uvicorn's queue.",
+        "The API accepted the job but no worker started it. Check that the API worker is enabled, or that a standalone worker uses the same SQLite job database.",
         { code: "timeout", status: 504, details: last }
       );
     }

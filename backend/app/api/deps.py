@@ -15,6 +15,7 @@ from app.storage.sqlite_store import SQLiteJobStore
 from app.workers.local_worker import LocalWorker
 from app.workers.queue import InMemorySimulationQueue, SimulationQueue
 from app.workers.sqlite_queue import SQLiteSimulationQueue
+from app.workers.recovery import reconcile_interrupted_jobs
 
 
 @lru_cache
@@ -49,9 +50,12 @@ _worker_thread: Thread | None = None
 
 
 def start_background_worker() -> None:
-    """Start an in-process worker thread when enabled."""
+    """Reconcile dead local claims and start the worker thread when enabled."""
     global _worker_thread
     settings = get_settings()
+    store = get_job_store()
+    queue = get_simulation_queue()
+    reconcile_interrupted_jobs(store, queue)
     if not settings.worker_enabled:
         return
     if _worker_thread is not None and _worker_thread.is_alive():

@@ -18,6 +18,7 @@ export const STATUS_LABELS = {
   complete: "Complete",
   failed: "Failed",
   cancelled: "Cancelled",
+  interrupted: "Interrupted",
   not_configured: "Not configured"
 };
 
@@ -47,6 +48,15 @@ export function resultsPanelMessage(snapshot) {
       body:
         snapshot.error?.message ??
         `${solver} is not configured on the backend. No physical execution was performed.`
+    };
+  }
+
+  if (snapshot.status === "interrupted") {
+    return {
+      kind: "warning",
+      title: "Run interrupted",
+      body:
+        "The worker stopped before completion was confirmed. Outputs may be partial; inspect the run artifacts before retrying."
     };
   }
 

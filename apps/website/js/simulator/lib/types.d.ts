@@ -20,6 +20,7 @@ export type SimulationStatus =
   | "complete"
   | "failed"
   | "cancelled"
+  | "interrupted"
   | "not_configured";
 
 export type JobStatus =
@@ -34,6 +35,7 @@ export type JobStatus =
   | "complete"
   | "failed"
   | "cancelled"
+  | "interrupted"
   | "not_configured";
 
 export type AccelerationLabel =

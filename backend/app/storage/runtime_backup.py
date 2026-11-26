@@ -11,8 +11,8 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-SCHEMA_VERSION = 1
-REQUIRED_TABLES = {"jobs", "simulation_queue", "simulation_cancellations"}
+SCHEMA_VERSION = 2
+REQUIRED_TABLES = {"jobs", "simulation_queue", "simulation_cancellations", "simulation_claims"}
 
 
 def _sha256(path: Path) -> str:

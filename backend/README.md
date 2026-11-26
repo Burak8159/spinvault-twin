@@ -29,7 +29,7 @@ uvicorn app.main:app --reload --port 8001
 ### Worker mode and local persistence
 
 The default `SPINVAULT_JOB_STORE=sqlite` stores job records, pending queue entries,
-and cross-process cancellation markers in `backend/data/jobs.sqlite3` (override
+worker claims and cross-process cancellation markers in `backend/data/jobs.sqlite3` (override
 with `SPINVAULT_JOB_DATABASE`). SQLite claims are transactional, enqueueing a
 queued job and recording its queue entry happen in one transaction, and pending
 jobs survive API/worker restarts. This is local single-host persistence, not a
@@ -63,8 +63,11 @@ python -m app.workers
 setups; those modes use a process-local queue, so a separate worker cannot see
 their jobs. A job already claimed by a worker is deliberately not retried
 automatically after a process crash, because solver files may be partial and
-automatic retry could duplicate computation. Inspect its worker/job artifacts
-before deciding how to retry it. The SQLite mode has not yet been qualified for
+automatic retry could duplicate computation. On startup, a claim is marked
+`interrupted` only after its same-host owner PID is confirmed absent; unknown
+hosts and permission-denied PID checks are left untouched. Inspect artifacts and
+confirm the solver has exited before a deliberate retry. This is not process
+termination supervision. The SQLite mode has not yet been qualified for
 multi-host production deployment or disaster recovery.
 
 ## MuMax3 on a configured host (e.g. Windows + CUDA)

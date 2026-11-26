@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from concurrent.futures import ThreadPoolExecutor
 from fastapi.testclient import TestClient
+import sqlite3
 
 from app.models.jobs import JobRecord
 from app.models.provenance import Provenance, utc_now
@@ -15,6 +16,8 @@ from app.config import Settings
 from app.storage.runtime_backup import backup_runtime_database, restore_runtime_database
 from app.storage.sqlite_store import SQLiteJobStore
 from app.workers.local_worker import LocalWorker
+from app.workers.recovery import reconcile_interrupted_jobs
+from app.workers import process_check
 from app.workers.sqlite_queue import SQLiteSimulationQueue
 
 
@@ -193,3 +196,137 @@ def test_default_sqlite_api_records_and_pending_queue_survive_restart(
             assert restarted_app.get("/api/worker").json()["pendingJobs"] == 1
     finally:
         reset_runtime()
+
+
+def test_api_startup_reconciles_dead_claim_and_does_not_requeue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.api.deps import get_job_store, get_simulation_queue, reset_runtime
+    from app.main import create_app
+    from tests.conftest import sample_mumax_payload
+
+    database = tmp_path / "api-interruption.sqlite3"
+    monkeypatch.setenv("SPINVAULT_JOB_STORE", "sqlite")
+    monkeypatch.setenv("SPINVAULT_JOB_DATABASE", str(database))
+    monkeypatch.setenv("SPINVAULT_WORKER_ENABLED", "false")
+    reset_runtime()
+    try:
+        with TestClient(create_app()) as first_app:
+            created = first_app.post("/api/simulations", json=sample_mumax_payload()).json()["job"]
+            queue = get_simulation_queue()
+            assert queue.claim_next() == created["jobId"]
+            job = get_job_store().get(created["jobId"])
+            job.status = "running_solver"
+            job.progress_phase = "running_solver"
+            get_job_store().update(job)
+
+        monkeypatch.setattr(process_check, "process_is_alive", lambda _pid: False)
+        reset_runtime()
+        with TestClient(create_app()) as restarted_app:
+            restored = restarted_app.get(f"/api/simulations/{created['jobId']}").json()
+            assert restored["status"] == "interrupted"
+            assert any(warning["code"] == "worker_interrupted" for warning in restored["warnings"])
+            assert restarted_app.get("/api/worker").json()["pendingJobs"] == 0
+    finally:
+        reset_runtime()
+
+
+def test_confirmed_dead_claim_becomes_interrupted_without_retry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    database = tmp_path / "runtime.sqlite3"
+    store = SQLiteJobStore(database)
+    queue = SQLiteSimulationQueue(database)
+    job = _job()
+    store.create(job)
+    queue.enqueue(job.job_id)
+    assert queue.claim_next() == job.job_id
+    job.status = "running_solver"
+    job.progress_phase = "running_solver"
+    store.update(job)
+
+    monkeypatch.setattr(process_check, "process_is_alive", lambda _pid: False)
+    assert reconcile_interrupted_jobs(store, queue) == [job.job_id]
+    interrupted = store.get(job.job_id)
+    assert interrupted is not None
+    assert interrupted.status == "interrupted"
+    assert any(warning.code == "worker_interrupted" for warning in interrupted.warnings)
+    assert queue.pending_count() == 0
+    assert queue.reconcile_orphaned_claims() == []
+    with sqlite3.connect(database) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM simulation_claims").fetchone()[0] == 0
+
+
+def test_completed_job_is_not_downgraded_by_stale_claim(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    database = tmp_path / "runtime.sqlite3"
+    store = SQLiteJobStore(database)
+    queue = SQLiteSimulationQueue(database)
+    job = _job()
+    job.status = "complete"
+    store.create(job)
+    queue.enqueue(job.job_id)
+    assert queue.claim_next() == job.job_id
+    monkeypatch.setattr(process_check, "process_is_alive", lambda _pid: False)
+
+    assert reconcile_interrupted_jobs(store, queue) == []
+    assert store.get(job.job_id).status == "complete"  # type: ignore[union-attr]
+
+
+def test_competing_startup_recovery_updates_claim_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    database = tmp_path / "runtime.sqlite3"
+    store = SQLiteJobStore(database)
+    queue = SQLiteSimulationQueue(database)
+    job = _job("recover-once")
+    store.create(job)
+    queue.enqueue(job.job_id)
+    assert queue.claim_next() == job.job_id
+    job.status = "running_solver"
+    job.progress_phase = "running_solver"
+    store.update(job)
+    monkeypatch.setattr(process_check, "process_is_alive", lambda _pid: False)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(
+            executor.map(
+                lambda _index: reconcile_interrupted_jobs(
+                    SQLiteJobStore(database), SQLiteSimulationQueue(database)
+                ),
+                range(2),
+            )
+        )
+
+    assert sorted(results, key=len) == [[], [job.job_id]]
+    recovered = SQLiteJobStore(database).get(job.job_id)
+    assert recovered is not None and recovered.status == "interrupted"
+    assert [warning.code for warning in recovered.warnings].count("worker_interrupted") == 1
+
+
+def test_runtime_schema_v1_migrates_by_adding_claim_tracking(tmp_path: Path) -> None:
+    database = tmp_path / "legacy-v1.sqlite3"
+    legacy_job = _job("legacy-job")
+    with sqlite3.connect(database) as connection:
+        connection.executescript(
+            """CREATE TABLE jobs(job_id TEXT PRIMARY KEY, payload TEXT NOT NULL,
+                   created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+               CREATE TABLE simulation_queue(job_id TEXT PRIMARY KEY, enqueued_at TEXT NOT NULL);
+               CREATE TABLE simulation_cancellations(job_id TEXT PRIMARY KEY, requested_at TEXT NOT NULL);
+               PRAGMA user_version = 1;"""
+        )
+        connection.execute(
+            "INSERT INTO jobs VALUES (?, ?, ?, ?)",
+            (
+                legacy_job.job_id,
+                legacy_job.model_dump_json(by_alias=True),
+                legacy_job.created_at.isoformat(),
+                legacy_job.updated_at.isoformat(),
+            ),
+        )
+        connection.execute("INSERT INTO simulation_queue(job_id, enqueued_at) VALUES (?, ?)", ("legacy-job", "2026"))
+
+    SQLiteJobStore(database)
+    SQLiteSimulationQueue(database)
+    with sqlite3.connect(database) as connection:
+        version = connection.execute("PRAGMA user_version").fetchone()[0]
+        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert version == 2
+    assert "simulation_claims" in tables
+    assert SQLiteJobStore(database).get("legacy-job").job_id == "legacy-job"  # type: ignore[union-attr]
+    assert SQLiteSimulationQueue(database).claim_next() == "legacy-job"
