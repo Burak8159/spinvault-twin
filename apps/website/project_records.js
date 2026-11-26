@@ -254,7 +254,8 @@ $('structure-import').onclick = async () => {
       .map(byte => byte.toString(16).padStart(2,'0')).join('');
     const saved = await request('/api/project-records/import-qe-structure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({catalog_json:rawText,filename:file.name})});
     status.textContent = `Saved ${saved.record.id} revision ${saved.revision}; ${saved.record.atom_count} atoms; source state ${saved.record.source_status}; transport remains unvalidated. Catalog JSON SHA-256 ${catalogDigest}.`;
-    $('structure-detail').textContent = JSON.stringify(saved,null,2);
+    $('structure-detail-summary').textContent = `${saved.record.id} · revision ${saved.revision} · ${saved.record.atom_count} atoms · ${saved.record.source_status} · transport not validated.`;
+    $('structure-detail').textContent = JSON.stringify(saved,null,2); $('structure-json-details').open = false;
     await $('structure-refresh').onclick();
   } catch (error) { status.textContent = error.message; }
 };
@@ -264,7 +265,7 @@ $('structure-refresh').onclick = async () => {
     const result = await request('/api/project-records/structure');
     const select = $('study-structure'); const selected = select.value;
     select.replaceChildren(new Option('No structure linked', ''));
-    for (const item of structureRecords) {
+    for (const item of result.records) {
       select.append(new Option(`${item.id} · r${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status}`,
         `${item.id}@${item.revision}`));
     }
@@ -277,7 +278,7 @@ $('structure-refresh').onclick = async () => {
       const li = document.createElement('li'); const label = document.createElement('span');
       label.textContent = `${item.id} · r${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status} · transport ${item.record.transport_validated ? 'validated' : 'not validated'} `;
       const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Inspect record';
-      button.addEventListener('click',async()=>{try{$('structure-detail').textContent=JSON.stringify(await request(`/api/project-records/structure/${encodeURIComponent(item.id)}?revision=${item.revision}`),null,2);}catch(error){status.textContent=error.message;}});
+      button.addEventListener('click',async()=>{try{const detail=await request(`/api/project-records/structure/${encodeURIComponent(item.id)}?revision=${item.revision}`);$('structure-detail-summary').textContent=`${item.id} · revision ${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status} · transport ${item.record.transport_validated?'validated':'not validated'}.`;$('structure-detail').textContent=JSON.stringify(detail,null,2);$('structure-json-details').open=true;}catch(error){status.textContent=error.message;}});
       li.append(label,button); list.append(li);
     }
     if (!list.children.length) { const empty=document.createElement('li'); empty.textContent='No saved structure records.'; list.append(empty); }

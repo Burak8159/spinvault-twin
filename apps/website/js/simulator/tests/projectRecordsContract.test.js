@@ -21,3 +21,16 @@ test('study structure selection records an exact revision and imports its packag
   assert.match(script, /study_with_device_and_structure/);
   assert.match(script, /linked exact revision/);
 });
+
+test('structure inspection keeps long atom tables collapsed until explicitly requested', () => {
+  assert.match(html, /<details id="structure-json-details">/);
+  assert.match(html, /summary>View full structure record JSON/);
+  assert.match(script, /structure-json-details'\)\.open\s*=\s*true/);
+  assert.match(script, /structure-json-details'\)\.open\s*=\s*false/);
+});
+
+test('structure refresh renders the records returned by the API', () => {
+  assert.match(script, /const result = await request\('\/api\/project-records\/structure'\)/);
+  assert.match(script, /for \(const item of result\.records\)/);
+  assert.doesNotMatch(script, /for \(const item of structureRecords\)/);
+});
