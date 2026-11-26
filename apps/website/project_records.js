@@ -225,3 +225,33 @@ $('archive-import').onclick = async () => {
     await $('refresh').onclick();
   } catch (error) { status.textContent = error.message; }
 };
+$('structure-import').onclick = async () => {
+  const status = $('structure-status'); status.textContent = 'Validating source structure…';
+  try {
+    const file = $('structure-file').files[0];
+    if (!file) throw new Error('Choose a 72- or 88-atom QE structure JSON file.');
+    if (file.size > 2 * 1024 * 1024) throw new Error('Structure record exceeds the 2 MiB limit.');
+    const rawText = await file.text();
+    const catalogDigest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawText))))
+      .map(byte => byte.toString(16).padStart(2,'0')).join('');
+    const saved = await request('/api/project-records/import-qe-structure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({catalog_json:rawText,filename:file.name})});
+    status.textContent = `Saved ${saved.record.id} revision ${saved.revision}; ${saved.record.atom_count} atoms; source state ${saved.record.source_status}; transport remains unvalidated. Catalog JSON SHA-256 ${catalogDigest}.`;
+    $('structure-detail').textContent = JSON.stringify(saved,null,2);
+    await $('structure-refresh').onclick();
+  } catch (error) { status.textContent = error.message; }
+};
+$('structure-refresh').onclick = async () => {
+  const list = $('structure-list'); const status = $('structure-status'); list.replaceChildren();
+  try {
+    const result = await request('/api/project-records/structure');
+    for (const item of result.records) {
+      const li = document.createElement('li'); const label = document.createElement('span');
+      label.textContent = `${item.id} · r${item.revision} · ${item.record.atom_count} atoms · ${item.record.source_status} · transport ${item.record.transport_validated ? 'validated' : 'not validated'} `;
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Inspect record';
+      button.addEventListener('click',async()=>{try{$('structure-detail').textContent=JSON.stringify(await request(`/api/project-records/structure/${encodeURIComponent(item.id)}?revision=${item.revision}`),null,2);}catch(error){status.textContent=error.message;}});
+      li.append(label,button); list.append(li);
+    }
+    if (!list.children.length) { const empty=document.createElement('li'); empty.textContent='No saved structure records.'; list.append(empty); }
+    status.textContent = `Loaded ${list.children.length} structure record(s). Source convergence labels are preserved and not promoted.`;
+  } catch (error) { status.textContent = error.message; }
+};

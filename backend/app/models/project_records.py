@@ -72,5 +72,48 @@ class StudyRecord(RecordModel):
     status: Literal["draft", "prepared", "running", "complete", "failed"] = "draft"
 
 
-RecordType = Literal["device", "study"]
-RECORD_MODELS = {"device": DeviceRecord, "study": StudyRecord}
+class StructureAtom(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, str_strip_whitespace=True)
+    index: int = Field(ge=1)
+    element: str = Field(min_length=1, max_length=3, pattern=r"^[A-Z][a-z]?$" )
+    species_label: str = Field(min_length=1, max_length=64)
+    position_angstrom: tuple[float, float, float]
+    sublattice: str | None = Field(default=None, max_length=64)
+    region: str | None = Field(default=None, max_length=128)
+
+
+class StructureRecord(RecordModel):
+    record_type: Literal["structure"] = "structure"
+    atom_count: int = Field(ge=1, le=50000)
+    lattice_vectors_angstrom: tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]
+    periodic_axes: tuple[bool, bool, bool]
+    atoms: list[StructureAtom] = Field(min_length=1, max_length=50000)
+    initial_spin_by_species: dict[str, float] = Field(default_factory=dict)
+    magnetic_label: str = Field(min_length=1, max_length=512)
+    source_status: str = Field(min_length=1, max_length=128)
+    transport_validated: bool = False
+
+    @model_validator(mode="after")
+    def consistent_geometry(self):
+        if self.atom_count != len(self.atoms):
+            raise ValueError("atom_count must match the atom list length")
+        indices = [atom.index for atom in self.atoms]
+        if len(indices) != len(set(indices)) or set(indices) != set(range(1, self.atom_count + 1)):
+            raise ValueError("atom indices must be unique and contiguous from 1 through atom_count")
+        a, b, c = self.lattice_vectors_angstrom
+        determinant = (
+            a[0] * (b[1] * c[2] - b[2] * c[1])
+            - a[1] * (b[0] * c[2] - b[2] * c[0])
+            + a[2] * (b[0] * c[1] - b[1] * c[0])
+        )
+        if abs(determinant) < 1e-9:
+            raise ValueError("lattice vectors must span a nonzero cell")
+        if any(not math.isfinite(value) for atom in self.atoms for value in atom.position_angstrom):
+            raise ValueError("atomic coordinates must be finite")
+        if any(not math.isfinite(value) for value in self.initial_spin_by_species.values()):
+            raise ValueError("initial magnetic seeds must be finite")
+        return self
+
+
+RecordType = Literal["device", "study", "structure"]
+RECORD_MODELS = {"device": DeviceRecord, "study": StudyRecord, "structure": StructureRecord}

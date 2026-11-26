@@ -1,10 +1,12 @@
 import copy
 import hashlib
+import json
 import sqlite3
 
 import pytest
 
 from app.services.project_record_store import ProjectRecordConflict, ProjectRecordStore
+from app.api.project_records import qe_catalog_to_structure
 
 
 def device_record(identifier="stack-alpha"):
@@ -19,6 +21,21 @@ def device_record(identifier="stack-alpha"):
                  "thickness": {"value": None, "unit": None, "missing_reason": "Synthetic unresolved thickness"},
                  "magnetic_role": None, "status": "unresolved", "source_refs": []}],
             "lateral_dimensions": {}, "operating_domain": {}}
+
+
+def structure_record(identifier="cfas-nfo-structure"):
+    atoms = [{"index": 1, "element": "Fe", "species_label": "FeA",
+              "position_angstrom": [0.0, 0.0, 0.0], "sublattice": "A", "region": "NFO"},
+             {"index": 2, "element": "O", "species_label": "O",
+              "position_angstrom": [1.0, 1.0, 1.0], "region": "NFO"}]
+    return {"schema_version": "1.0", "record_type": "structure", "id": identifier,
+            "title": "Prepared interface geometry", "source_refs": ["source structure hash: " + "a" * 64],
+            "metadata": {}, "atom_count": 2,
+            "lattice_vectors_angstrom": [[5.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 8.0]],
+            "periodic_axes": [True, True, True], "atoms": atoms,
+            "initial_spin_by_species": {"FeA": -0.4},
+            "magnetic_label": "ferrimagnetic seeds; not converged",
+            "source_status": "PREPARED_NOT_EXECUTED", "transport_validated": False}
 
 
 def test_project_record_store_versions_parent_relations_and_integrity(tmp_path):
@@ -231,3 +248,65 @@ def test_project_archive_api_import_is_atomic_and_hash_checked(client, tmp_path,
     assert exported.json()["archive_sha256"] == archive["archive_sha256"]
     duplicate = client.post("/api/project-records/archive/import", json={"archive": archive})
     assert duplicate.status_code == 409
+
+
+def test_source_backed_structure_record_preserves_geometry_and_status(tmp_path):
+    source = ProjectRecordStore(tmp_path / "source-structures.sqlite")
+    saved = source.save("structure", structure_record(), 0)
+    restored = ProjectRecordStore(tmp_path / "restored-structures.sqlite")
+    restored.import_bundle(source.export_bundle("structure", saved["id"]))
+    record = restored.get("structure", saved["id"])
+    assert record["record"]["atom_count"] == 2
+    assert record["record"]["atoms"][0]["position_angstrom"] == [0.0, 0.0, 0.0]
+    assert record["record"]["source_status"] == "PREPARED_NOT_EXECUTED"
+    assert record["record"]["transport_validated"] is False
+
+
+@pytest.mark.parametrize("changes", [
+    {"atom_count": 3},
+    {"lattice_vectors_angstrom": [[1, 0, 0], [2, 0, 0], [0, 0, 1]]},
+    {"atoms": [{"index": 1, "element": "Fe", "species_label": "FeA", "position_angstrom": [0, 0, 0]},
+               {"index": 1, "element": "O", "species_label": "O", "position_angstrom": [1, 1, 1]}]},
+])
+def test_structure_rejects_inconsistent_atom_mapping_or_cell(tmp_path, changes):
+    store = ProjectRecordStore(tmp_path / "invalid-structure.sqlite")
+    with pytest.raises(ValueError):
+        store.save("structure", {**structure_record(), **changes}, 0)
+
+
+def test_structure_api_supports_list_get_and_export(client, tmp_path, monkeypatch):
+    monkeypatch.setenv("SPINVAULT_PROJECT_RECORDS_DB", str(tmp_path / "structure-api.sqlite"))
+    saved = client.post("/api/project-records/structure", json={"record": structure_record("api-structure"), "expected_revision": 0})
+    assert saved.status_code == 200, saved.json()
+    listing = client.get("/api/project-records/structure")
+    assert listing.status_code == 200
+    assert listing.json()["records"][0]["record"]["source_status"] == "PREPARED_NOT_EXECUTED"
+    assert client.get("/api/project-records/structure/api-structure/export").status_code == 200
+
+
+def test_qe_structure_catalog_conversion_keeps_source_status_and_magnetic_labels():
+    catalog = {"schema_version": 1, "id": "qe-small-test", "atom_count": 2,
+        "cell_angstrom": [[4,0,0],[0,4,0],[0,0,6]],
+        "atoms": [{"index": 1, "species": "FeA", "position_angstrom": [0,0,0]},
+                  {"index": 2, "species": "O", "position_angstrom": [1,1,1]}],
+        "species_counts": {"FeA": 1, "O": 1}, "initial_spin_parameters": {"FeA": -0.4},
+        "magnetic_label": "seed only", "source_input": "qe.in", "source_sha256": "a" * 64,
+        "status": "PREPARED_NOT_EXECUTED", "transport_validated": False}
+    converted = qe_catalog_to_structure(json.dumps(catalog), "qe-small-test.json")
+    assert converted["source_status"] == "PREPARED_NOT_EXECUTED"
+    assert converted["transport_validated"] is False
+    assert converted["atoms"][0]["element"] == "Fe"
+    assert converted["atoms"][0]["sublattice"] == "Fe(A)"
+    assert converted["atoms"][0]["region"] == "NFO"
+    assert converted["initial_spin_by_species"] == {"FeA": -0.4}
+    assert any(ref.startswith("catalog_sha256=") for ref in converted["source_refs"])
+
+
+def test_qe_structure_catalog_conversion_rejects_species_count_and_atom_order_errors():
+    catalog = {"schema_version": 1, "id": "bad-catalog", "atom_count": 1,
+        "cell_angstrom": [[4,0,0],[0,4,0],[0,0,6]],
+        "atoms": [{"index": 1, "species": "FeA", "position_angstrom": [0,0,0]}],
+        "species_counts": {"O": 1}, "initial_spin_parameters": {},
+        "magnetic_label": "seed", "source_sha256": "a" * 64, "status": "INCOMPLETE"}
+    with pytest.raises(ValueError, match="species counts"):
+        qe_catalog_to_structure(json.dumps(catalog), "bad.json")
