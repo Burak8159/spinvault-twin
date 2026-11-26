@@ -122,6 +122,24 @@ The local app accepts the default preview origins and the configured `SPINVAULT_
 
 Open `/requirements.html` on the local website. Project requirements default to `backend/data/requirements.sqlite`; set `SPINVAULT_REQUIREMENTS_DB` to choose another location. The UI supports immutable revisions, an expected-revision conflict check, project load/save, and JSON export. Browser-only save is also available. The default storage location is explicit and separate from the evidence directory.
 
-Evidence evaluation additionally requires `SPINVAULT_REQUIREMENT_EVIDENCE_ROOT`, outside the public website tree. Each `ID.json` names a relative JSON observation, its SHA-256, and a review object with `status`, `reviewer`, and `evidence_ref`. The observation supplies metric, value, unit and structured operating conditions. Qualification derives from the stored review; a caller cannot supply it in the evaluation request. Review records must be controlled by the local administrator. Hash verification establishes consistency with those records, not reviewer authentication or scientific validity. Evidence JSON is bounded to 1 MiB per file.
+Evidence evaluation additionally requires `SPINVAULT_REQUIREMENT_EVIDENCE_ROOT`, outside the public website tree. Each `ID.json` names a relative JSON observation, its SHA-256, and a review object with `status`, `reviewer`, `evidence_ref`, and `scope`. The observation supplies metric, value, unit and structured operating conditions. When `SPINVAULT_EVIDENCE_SIGNING_KEY_FILE` is configured, qualification requires a matching HMAC signature; without a verified signature the observation remains unqualified. A caller cannot supply qualification in the evaluation request. Artifact JSON is bounded to 1 MiB per file.
 
 Do not expose these local administrative functions or private evidence on a public server without deployment authentication, permissions and review controls. The current release is qualified only for the tested local workflows.
+
+### Signed local evidence reviews
+
+Requirement comparisons require signed local review metadata before an observation can be treated as qualified. Keep the signing key outside the public website and outside shared evidence exports. Set `SPINVAULT_EVIDENCE_SIGNING_KEY_FILE` for the API process. Without a configured verified signature, the comparison remains NOT_EVALUATED; a changed or invalid signature is rejected when a key is configured. When an observation carries a solver-log path and SHA-256 in provenance, the API rehashes that source file for each comparison and rejects changes or paths outside the configured evidence root.
+
+From `backend`, initialize a private key once:
+
+```bash
+.venv/bin/python review_evidence.py --key-file /private/path/review.key --init-key
+```
+
+After independently reviewing an observation and its existing hash record, sign it explicitly:
+
+```bash
+.venv/bin/python review_evidence.py --key-file /private/path/review.key --record /private/evidence/ID.json --reviewer reviewer-id --reference review-document-id --scope numerical-log-review
+```
+
+The tool refuses to overwrite an existing key and refuses to sign a record whose artifact hash no longer matches. It signs the artifact identity and review metadata together. This authenticates possession of the local administrator's key; it does not establish professional reviewer identity, independent peer review or physical truth. No material-specific scientific state is automatically approved by this tool. A single-record PASS is only that one requirement comparison, not device certification.

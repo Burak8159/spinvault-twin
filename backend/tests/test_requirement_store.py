@@ -43,7 +43,12 @@ def test_saved_evaluation_binds_exact_requirement_revision(client,tmp_path,monke
     monkeypatch.setenv('SPINVAULT_REQUIREMENT_EVIDENCE_ROOT',str(tmp_path))
     observation={'metric':'leakage','unit':'A','value':1e-7,'conditions':{'temperature_K':300}}
     artifact=tmp_path/'observation.json';artifact.write_text(json.dumps(observation))
-    (tmp_path/'evidence.json').write_text(json.dumps({'artifact':'observation.json','sha256':hashlib.sha256(artifact.read_bytes()).hexdigest(),'review':{'status':'QUALIFIED','reviewer':'fixture reviewer','evidence_ref':'test only'}}))
+    from app.services.review_signatures import signature
+    key=b'fixture-key'*4;keyfile=tmp_path/'key';keyfile.write_bytes(key)
+    monkeypatch.setenv('SPINVAULT_EVIDENCE_SIGNING_KEY_FILE',str(keyfile))
+    record={'artifact':'observation.json','sha256':hashlib.sha256(artifact.read_bytes()).hexdigest(),'review':{'status':'QUALIFIED','reviewer':'fixture reviewer','evidence_ref':'test only','scope':'test-only'}}
+    record['signature']=signature(record,key)
+    (tmp_path/'evidence.json').write_text(json.dumps(record))
     req=example();req.update(status='SPECIFIED',target=1e-6,comparator='<=',source='fixture',conditions={'temperature_K':300})
     first=client.post('/api/requirements',json={'requirement':req,'expected_revision':0}).json()
     req['target']=1e-8
