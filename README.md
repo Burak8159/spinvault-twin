@@ -8,7 +8,10 @@ Digital twin platform for the SpinVault spintronic memory architecture.
 - To publish the same stack at **https://spinvault.biz** from a Windows PC,
   follow `docs/HOSTING_WINDOWS.md` and double-click `HOST_ON_WINDOWS.bat`.
 - macOS: extract the package and double-click `RUN_ON_MAC.command`, or run
-  `scripts/run_local.sh` from Terminal.
+  `scripts/run_local.sh` from Terminal. On Apple silicon with Python 3.11, the
+  launcher uses the qualified version constraints in
+  `backend/constraints-macos-arm64-py311.txt`; other platforms use the declared
+  minimum requirements until their environments are qualified.
 - Linux: run `scripts/run_local.sh`.
 - Python 3.9+ is required. The first launch installs Python dependencies and
   therefore needs an internet connection once.

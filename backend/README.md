@@ -26,6 +26,12 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8001
 ```
 
+The whole-app launcher detects Apple silicon with Python 3.11 and installs with
+`constraints-macos-arm64-py311.txt`, which matches the locally qualified setup.
+Other platforms currently use the minimum requirements because platform-specific
+constraints have not been qualified yet. The Python constraints pin versions but
+do not provide package hashes.
+
 ### Worker mode and local persistence
 
 The default `SPINVAULT_JOB_STORE=sqlite` stores job records, pending queue entries,
