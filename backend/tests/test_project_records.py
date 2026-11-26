@@ -5,7 +5,11 @@ import sqlite3
 
 import pytest
 
-from app.services.project_record_store import ProjectRecordConflict, ProjectRecordStore
+from app.services.project_record_store import (
+    ProjectRecordConflict,
+    ProjectRecordStore,
+    UnsupportedProjectSchema,
+)
 from app.api.project_records import structure_catalog_to_record
 
 
@@ -75,6 +79,25 @@ def test_project_record_store_versions_parent_relations_and_integrity(tmp_path):
     assert reopened.get("study", "study-a")["sha256"] == stored_study["sha256"]
     with reopened.connect() as db:
         assert [row["version"] for row in db.execute("SELECT version FROM schema_migrations")] == [1]
+
+
+def test_store_refuses_newer_schema_without_modifying_database(tmp_path):
+    path = tmp_path / "future-project.sqlite"
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
+        db.execute("INSERT INTO schema_migrations(version, applied_at) VALUES(2, 'future-fixture')")
+        db.execute("CREATE TABLE future_records (id TEXT PRIMARY KEY)")
+        journal_mode = db.execute("PRAGMA journal_mode").fetchone()[0]
+
+    with pytest.raises(UnsupportedProjectSchema, match="newer than supported version 1"):
+        ProjectRecordStore(path)
+
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT version, applied_at FROM schema_migrations").fetchall() == [(2, "future-fixture")]
+        assert db.execute("PRAGMA journal_mode").fetchone()[0] == journal_mode
+        assert db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+        ).fetchall() == [("future_records",), ("schema_migrations",)]
 
 
 def test_record_unknowns_require_reason_and_known_values_require_units(tmp_path):

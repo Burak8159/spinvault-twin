@@ -14,14 +14,22 @@ class ProjectRecordConflict(ValueError):
     pass
 
 
+class UnsupportedProjectSchema(ValueError):
+    """Raised when this app cannot safely read the stored project schema."""
+
+
 class ProjectRecordStore:
     def __init__(self, path: Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
-            db.execute("PRAGMA journal_mode=WAL")
             db.execute("CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
             current = db.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()[0]
+            if current > 1:
+                raise UnsupportedProjectSchema(
+                    f"Project database schema version {current} is newer than supported version 1"
+                )
+            db.execute("PRAGMA journal_mode=WAL")
             if current < 1:
                 db.execute("BEGIN IMMEDIATE")
                 db.execute("CREATE TABLE IF NOT EXISTS project_record_revisions (record_type TEXT NOT NULL, id TEXT NOT NULL, revision INTEGER NOT NULL, content TEXT NOT NULL, sha256 TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(record_type,id,revision))")
