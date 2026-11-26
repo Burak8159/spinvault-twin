@@ -34,3 +34,9 @@ test('structure refresh renders the records returned by the API', () => {
   assert.match(script, /for \(const item of result\.records\)/);
   assert.doesNotMatch(script, /for \(const item of structureRecords\)/);
 });
+
+test('saved study list exposes its workflow status and exact structure revision honestly', () => {
+  assert.match(script, /workflow: \$\{record\.record\.status\} \(not scientific acceptance\)/);
+  assert.match(script, /\$\{record\.record\.structure_id\}@\$\{record\.record\.structure_revision\}/);
+  assert.match(script, /'none linked'/);
+});

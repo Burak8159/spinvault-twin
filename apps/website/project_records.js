@@ -211,7 +211,12 @@ $('refresh').onclick = async () => {
       for (const record of data.records) {
         const item = document.createElement('li');
         const description = document.createElement('span');
-        description.textContent = `${type}: ${record.id} · r${record.revision} · ${record.record.title} `;
+        if (type === 'study') {
+          const structure = record.record.structure_id
+            ? `${record.record.structure_id}@${record.record.structure_revision}`
+            : 'none linked';
+          description.textContent = `study: ${record.id} · r${record.revision} · ${record.record.title} · workflow: ${record.record.status} (not scientific acceptance) · structure: ${structure} `;
+        } else description.textContent = `device: ${record.id} · r${record.revision} · ${record.record.title} `;
         const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Load';
         button.addEventListener('click', () => showStored(type, record)); item.append(description, button); list.append(item);
       }
