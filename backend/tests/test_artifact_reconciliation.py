@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import sqlite3
 import subprocess
 import sys
@@ -49,10 +50,72 @@ def test_reports_consistent_terminal_job_without_modifying_inputs(tmp_path: Path
 
     assert report["issues"] == []
     assert report["jobs"][0]["references"] == [
-        {"id": "file-0", "path": "result.json", "status": "present", "bytes": 2}
+        {
+            "id": "file-0",
+            "path": "result.json",
+            "status": "present",
+            "bytes": 2,
+            "integrity": "unverified",
+        }
     ]
     assert database.read_bytes() == before
     assert not list(root.rglob("*.tmp"))
+
+
+def test_verifies_schema2_artifact_hashes_and_reports_tampering(tmp_path: Path) -> None:
+    database = tmp_path / "jobs.sqlite"
+    root = tmp_path / "jobs"
+    job_dir = root / "job-a"
+    job_dir.mkdir(parents=True)
+    artifact = job_dir / "result.json"
+    artifact.write_bytes(b"{}")
+    _database(database, [_job("job-a")])
+    manifest = {
+        "schemaVersion": 2,
+        "jobId": "job-a",
+        "solver": "demo",
+        "files": [{
+            "id": "result",
+            "path": "result.json",
+            "sizeBytes": 2,
+            "sha256": hashlib.sha256(b"{}").hexdigest(),
+        }],
+    }
+    (job_dir / "artifacts.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    valid = audit_job_artifacts(database, root)
+    reference = valid["jobs"][0]["references"][0]
+    assert reference["status"] == "present"
+    assert reference["integrity"] == "verified"
+    assert reference["observed_sha256"] == manifest["files"][0]["sha256"]
+
+    artifact.write_bytes(b"{\"tampered\":true}")
+    changed = audit_job_artifacts(database, root)
+    assert changed["jobs"][0]["references"][0]["status"] == "size_mismatch"
+    assert any(issue["kind"] == "manifest_reference_size_mismatch" for issue in changed["issues"])
+
+
+def test_reports_hash_mismatch_when_same_size_content_changes(tmp_path: Path) -> None:
+    database = tmp_path / "jobs.sqlite"
+    root = tmp_path / "jobs"
+    job_dir = root / "job-a"
+    job_dir.mkdir(parents=True)
+    artifact = job_dir / "payload.bin"
+    artifact.write_bytes(b"abcd")
+    _database(database, [_job("job-a")])
+    _manifest(job_dir, "job-a", ["payload.bin"])
+    manifest = json.loads((job_dir / "artifacts.json").read_text())
+    manifest["files"][0].update(
+        sizeBytes=4,
+        sha256=hashlib.sha256(b"abcd").hexdigest(),
+    )
+    (job_dir / "artifacts.json").write_text(json.dumps(manifest), encoding="utf-8")
+    artifact.write_bytes(b"wxyz")
+
+    report = audit_job_artifacts(database, root)
+
+    assert report["jobs"][0]["references"][0]["status"] == "hash_mismatch"
+    assert any(issue["kind"] == "manifest_reference_hash_mismatch" for issue in report["issues"])
 
 
 def test_reports_unrecorded_directories_and_terminal_missing_artifacts(tmp_path: Path) -> None:

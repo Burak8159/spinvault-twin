@@ -196,7 +196,7 @@ Back up or restore the SQLite project-record store with `python scripts/backup_p
 
 ### Read-only job/artifact reconciliation
 
-Run `python scripts/audit_job_artifacts.py` from `backend/` to compare the local SQLite job records with the configured job-artifact directory. Override paths with `--database` and `--artifact-root`; write a new JSON report with `--output PATH` (an existing report is never overwritten). The audit flags terminal records without artifact folders/manifests, directories without job records, invalid manifest references, missing listed files, and symlinks. It does not change the database or files, automatically retry jobs, or delete or move orphaned output. The current artifact manifest format has no file checksums, so this inventory is not an integrity certificate; the report explicitly marks that limitation.
+Run `python scripts/audit_job_artifacts.py` from `backend/` to compare the local SQLite job records with the configured job-artifact directory. Override paths with `--database` and `--artifact-root`; write a new JSON report with `--output PATH` (an existing report is never overwritten). New worker manifests use schema version 2 and inventory regular job files with byte counts and streaming SHA-256 digests; the manifest excludes itself. The writer atomically replaces the manifest. The read-only audit checks schema-2 hashes, reports size/hash changes and unsafe paths, and labels legacy entries without digests as integrity-unverified. It does not change the database or files, automatically retry jobs, or delete or move orphaned output. Digests establish file identity at a point in time only; they do not certify solver completion, scientific validity, or multi-host/off-device backup.
 
 ### Requirements workspace
 

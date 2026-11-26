@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -174,8 +176,48 @@ def test_artifact_manifest_generation(tmp_path: Path) -> None:
     assert "request.json" in paths
     assert "stdout.log" in paths
     assert "outputs/table.txt" in paths
+    assert "artifacts.json" not in paths
+    table_ref = next(ref for ref in manifest.files if ref.path == "outputs/table.txt")
+    assert table_ref.size_bytes == len(b"t mx\n0 1\n")
+    assert table_ref.sha256 == hashlib.sha256(b"t mx\n0 1\n").hexdigest()
+    assert json.loads((tmp_path / "artifacts.json").read_text())['schemaVersion'] == 2
     rebuilt = build_artifact_manifest(tmp_path, job_id="job_art", solver="mumax3")
-    assert len(rebuilt.files) >= len(manifest.files) - 1  # artifacts.json may appear on second pass
+    assert len(rebuilt.files) == len(manifest.files)
+
+
+def test_artifact_manifest_inventories_regular_files_and_skips_symlinks(tmp_path: Path) -> None:
+    payload = tmp_path / "unexpected.dat"
+    payload.write_bytes(b"raw-data")
+    outside = tmp_path.parent / "outside-secret"
+    outside.write_text("do not follow", encoding="utf-8")
+    (tmp_path / "linked.dat").symlink_to(outside)
+
+    manifest = build_artifact_manifest(tmp_path, job_id="job_tree", solver="demo")
+
+    refs = {ref.path: ref for ref in manifest.files}
+    assert set(refs) == {"unexpected.dat"}
+    assert refs["unexpected.dat"].size_bytes == len(b"raw-data")
+    assert refs["unexpected.dat"].sha256 == hashlib.sha256(b"raw-data").hexdigest()
+
+
+def test_artifact_manifest_replace_failure_preserves_previous_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import app.workers.artifacts as artifacts_module
+
+    destination = tmp_path / "artifacts.json"
+    destination.write_text('{"previous":true}', encoding="utf-8")
+    (tmp_path / "payload.txt").write_text("new content", encoding="utf-8")
+
+    def fail_replace(_source, _destination):
+        raise OSError("simulated atomic replace failure")
+
+    monkeypatch.setattr(artifacts_module.os, "replace", fail_replace)
+    with pytest.raises(OSError, match="simulated"):
+        write_artifact_manifest(tmp_path, job_id="job_atomic", solver="demo")
+
+    assert destination.read_text(encoding="utf-8") == '{"previous":true}'
+    assert not list(tmp_path.glob(".artifacts.*.tmp"))
 
 
 def test_worker_does_not_substitute_python_llg_when_mumax_missing(tmp_path: Path) -> None:

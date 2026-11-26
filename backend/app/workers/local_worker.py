@@ -505,7 +505,6 @@ class LocalWorker:
                 prepared.job_dir / "result.json",
                 result.model_dump(by_alias=True, mode="json"),
             )
-            write_artifact_manifest(prepared.job_dir, job_id=job.job_id, solver="mumax3")
 
             errors: list[JobError] = []
             warnings = list(job.warnings)
@@ -586,6 +585,7 @@ class LocalWorker:
                     message=f"Finished with status={status}",
                 ),
             )
+            write_artifact_manifest(prepared.job_dir, job_id=job.job_id, solver="mumax3")
         except RuntimeError as exc:
             if str(exc) == "__cancelled__":
                 self._mark_cancelled(job.job_id, job_dir=job_dir, gpu=gpu, started=started)
@@ -695,7 +695,6 @@ class LocalWorker:
                     job_dir / "result.json",
                     outcome.result.model_dump(by_alias=True, mode="json"),
                 )
-            write_artifact_manifest(job_dir, job_id=latest.job_id, solver="python_micromagnetic")
             write_status_document(
                 job_dir,
                 WorkerStatusDocument(
@@ -713,6 +712,7 @@ class LocalWorker:
                     message=f"Finished with status={latest.status}",
                 ),
             )
+            write_artifact_manifest(job_dir, job_id=latest.job_id, solver="python_micromagnetic")
         except RuntimeError as exc:
             if str(exc) == "__cancelled__":
                 self._mark_cancelled(job.job_id, job_dir=job_dir, started=started)
