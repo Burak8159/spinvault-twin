@@ -194,6 +194,10 @@ The optional read-only artifact API uses `SPINVAULT_ARTIFACT_ROOT` and a JSON fi
 
 Back up or restore the SQLite project-record store with `python scripts/backup_project_records.py backup DB NEW_BACKUP_DIR` and `python scripts/backup_project_records.py restore BACKUP_DIR NEW_DB`. Both operations refuse overwrite. The backup includes a SHA-256/byte-count manifest and SQLite integrity check; restore verifies the hash and supported schema version before atomically creating a new database. Keep backups in a separately managed, access-controlled location; this local tool does not itself provide off-device backup.
 
+### Read-only job/artifact reconciliation
+
+Run `python scripts/audit_job_artifacts.py` from `backend/` to compare the local SQLite job records with the configured job-artifact directory. Override paths with `--database` and `--artifact-root`; write a new JSON report with `--output PATH` (an existing report is never overwritten). The audit flags terminal records without artifact folders/manifests, directories without job records, invalid manifest references, missing listed files, and symlinks. It does not change the database or files, automatically retry jobs, or delete or move orphaned output. The current artifact manifest format has no file checksums, so this inventory is not an integrity certificate; the report explicitly marks that limitation.
+
 ### Requirements workspace
 
 Open `/requirements.html` on the local website. Project requirements default to `backend/data/requirements.sqlite`; set `SPINVAULT_REQUIREMENTS_DB` to choose another location. The UI supports immutable revisions, an expected-revision conflict check, project load/save, and JSON export. Browser-only save is also available. The default storage location is explicit and separate from the evidence directory.
