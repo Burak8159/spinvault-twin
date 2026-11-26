@@ -135,7 +135,9 @@ cat <<EOF
 EOF
 
 if [ "${SPINVAULT_NO_BROWSER:-false}" != "true" ] && command -v open >/dev/null 2>&1; then
-  open "http://$HOST:$WEB_PORT/matplotlib-twin.html?api=http://$HOST:$API_PORT"
+  if ! open "http://$HOST:$WEB_PORT/matplotlib-twin.html?api=http://$HOST:$API_PORT"; then
+    echo "The Twin is still running. Open http://$HOST:$WEB_PORT/matplotlib-twin.html?api=http://$HOST:$API_PORT in a browser."
+  fi
 fi
 
 wait
