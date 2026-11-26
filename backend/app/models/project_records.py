@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -123,5 +124,55 @@ class StructureRecord(RecordModel):
         return self
 
 
-RecordType = Literal["device", "study", "structure"]
-RECORD_MODELS = {"device": DeviceRecord, "study": StudyRecord, "structure": StructureRecord}
+class MaterialProperty(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, str_strip_whitespace=True)
+    id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    name: str = Field(min_length=1, max_length=128)
+    quantity: Quantity
+    conditions: dict[str, Quantity] = Field(default_factory=dict)
+    source_refs: list[str] = Field(default_factory=list, max_length=128)
+
+    @model_validator(mode="after")
+    def sourced_known_values(self):
+        if self.quantity.value is not None and not self.source_refs:
+            raise ValueError("Known material properties require at least one source reference")
+        return self
+
+
+class MaterialRecord(RecordModel):
+    """Source-aware material parameters; missing values remain explicitly unknown."""
+
+    record_type: Literal["material"] = "material"
+    composition: dict[str, float] = Field(default_factory=dict)
+    composition_missing_reason: str | None = Field(default=None, max_length=512)
+    phase: str | None = Field(default=None, min_length=1, max_length=128)
+    phase_missing_reason: str | None = Field(default=None, max_length=512)
+    properties: list[MaterialProperty] = Field(default_factory=list, max_length=500)
+    validity_domain: dict[str, Quantity] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def explicit_composition_phase_and_unique_properties(self):
+        if not self.composition and not (self.composition_missing_reason and self.composition_missing_reason.strip()):
+            raise ValueError("Unknown composition requires a missing reason")
+        if self.composition and self.composition_missing_reason is not None:
+            raise ValueError("Known composition cannot also have a missing reason")
+        for element, ratio in self.composition.items():
+            if not re.fullmatch(r"[A-Z][a-z]?", element) or not math.isfinite(ratio) or ratio <= 0:
+                raise ValueError("Composition must use element symbols and positive finite stoichiometric ratios")
+        if self.phase is None and not (self.phase_missing_reason and self.phase_missing_reason.strip()):
+            raise ValueError("Unknown phase requires a missing reason")
+        if self.phase is not None and self.phase_missing_reason is not None:
+            raise ValueError("Known phase cannot also have a missing reason")
+        has_known_values = bool(self.composition or self.phase is not None or
+                                any(item.value is not None for item in self.validity_domain.values()))
+        if has_known_values and not self.source_refs:
+            raise ValueError("Known material composition, phase, or validity values require source references")
+        ids = [item.id for item in self.properties]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Material property IDs must be unique")
+        return self
+
+
+RecordType = Literal["device", "study", "structure", "material"]
+RECORD_MODELS = {"device": DeviceRecord, "study": StudyRecord, "structure": StructureRecord,
+                 "material": MaterialRecord}

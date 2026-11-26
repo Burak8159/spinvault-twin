@@ -14,7 +14,7 @@ from app.api.requirements import require_local_browser
 from app.services.project_record_store import ProjectRecordConflict, ProjectRecordStore
 
 router = APIRouter(dependencies=[Depends(require_local_browser)])
-RecordType = Literal["device", "study", "structure"]
+RecordType = Literal["device", "study", "structure", "material"]
 
 
 def store():

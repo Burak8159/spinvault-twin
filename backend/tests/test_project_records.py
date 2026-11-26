@@ -38,6 +38,20 @@ def structure_record(identifier="cfas-nfo-structure"):
             "source_status": "PREPARED_NOT_EXECUTED", "transport_validated": False}
 
 
+def material_record(identifier="nfo-material"):
+    return {"schema_version": "1.0", "record_type": "material", "id": identifier,
+            "title": "Source-qualified nickel ferrite record", "source_refs": ["synthetic test fixture"],
+            "metadata": {}, "composition": {"Ni": 1, "Fe": 2, "O": 4},
+            "composition_missing_reason": None, "phase": "inverse spinel (test label)",
+            "phase_missing_reason": None,
+            "properties": [{"id": "lattice-param-a", "name": "Lattice parameter a",
+                            "quantity": {"value": 8.34, "unit": "angstrom"},
+                            "conditions": {"temperature": {"value": 300, "unit": "K"}},
+                            "source_refs": ["synthetic test fixture"]}],
+            "validity_domain": {"temperature": {"value": None, "unit": None,
+                                                   "missing_reason": "Not established by this fixture"}}}
+
+
 def test_project_record_store_versions_parent_relations_and_integrity(tmp_path):
     path = tmp_path / "project.sqlite"
     store = ProjectRecordStore(path)
@@ -143,6 +157,43 @@ def test_project_record_api_roundtrip(client, tmp_path, monkeypatch):
     imported_package = client.post("/api/project-records/study-package/import", json={"package": package.json()})
     assert imported_package.status_code == 200, imported_package.json()
     assert imported_package.json()["record"]["device_revision"] == 1
+
+
+def test_material_record_round_trip_provenance_validation_and_archive(client, tmp_path, monkeypatch):
+    source_path = tmp_path / "material-source.sqlite"
+    monkeypatch.setenv("SPINVAULT_PROJECT_RECORDS_DB", str(source_path))
+    record = material_record()
+    saved = client.post("/api/project-records/material", json={"record": record, "expected_revision": 0})
+    assert saved.status_code == 200, saved.json()
+    assert saved.json()["record"]["composition"] == {"Ni": 1.0, "Fe": 2.0, "O": 4.0}
+    assert client.get("/api/project-records/material").json()["records"][0]["id"] == "nfo-material"
+
+    exported = client.get("/api/project-records/material/nfo-material/export")
+    assert exported.status_code == 200 and "bundle_sha256" in exported.json()
+    monkeypatch.setenv("SPINVAULT_PROJECT_RECORDS_DB", str(tmp_path / "material-import.sqlite"))
+    imported = client.post("/api/project-records/import", json={"bundle": exported.json()})
+    assert imported.status_code == 200, imported.json()
+    assert imported.json()["record"] == saved.json()["record"]
+
+    archive = client.get("/api/project-records/archive")
+    assert archive.status_code == 200 and archive.json()["records"][0]["record_type"] == "material"
+    monkeypatch.setenv("SPINVAULT_PROJECT_RECORDS_DB", str(tmp_path / "material-archive-import.sqlite"))
+    archive_import = client.post("/api/project-records/archive/import", json={"archive": archive.json()})
+    assert archive_import.status_code == 200, archive_import.json()
+    assert archive_import.json()["imported_records"] == 1
+
+    missing_source = material_record("missing-source")
+    missing_source["source_refs"] = []
+    assert client.post("/api/project-records/material", json={"record": missing_source,
+                       "expected_revision": 0}).status_code == 422
+    unknown_without_reason = material_record("unknown-composition")
+    unknown_without_reason.update(composition={}, composition_missing_reason=None)
+    assert client.post("/api/project-records/material", json={"record": unknown_without_reason,
+                       "expected_revision": 0}).status_code == 422
+    unknown_property = material_record("unsourced-property")
+    unknown_property["properties"][0]["source_refs"] = []
+    assert client.post("/api/project-records/material", json={"record": unknown_property,
+                       "expected_revision": 0}).status_code == 422
 
 
 def test_study_package_preserves_exact_parent_revision_atomically(tmp_path):

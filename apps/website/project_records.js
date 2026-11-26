@@ -1,6 +1,7 @@
 const $ = id => document.getElementById(id);
 let deviceRevision = 0;
 let studyRevision = 0;
+let materialRevision = 0;
 const queryApi = new URLSearchParams(location.search).get('api');
 try { $('api').value = queryApi || localStorage.getItem('spinvault-project-records-api') || $('api').value; } catch { /* use inline default */ }
 
@@ -82,7 +83,12 @@ $('add-layer').addEventListener('click', () => renderLayers([...layerValues(), {
 async function request(path, options = {}) {
   const response = await fetch(`${apiBase()}${path}`, options);
   const body = await response.json();
-  if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : `Request rejected (${response.status}).`);
+  if (!response.ok) {
+    const detail = Array.isArray(body.detail)
+      ? body.detail.map(item => `${Array.isArray(item.loc) ? item.loc.slice(1).join('.') : 'record'}: ${item.msg}`).join('; ')
+      : body.detail;
+    throw new Error(typeof detail === 'string' ? detail : `Request rejected (${response.status}).`);
+  }
   return body;
 }
 function recordPayload(type) {
@@ -93,6 +99,22 @@ function recordPayload(type) {
     operating_domain: jsonField('domain', 'object', 'Operating domain'),
     source_refs: jsonField('device-sources', 'array', 'Source references'), metadata: {}
   };
+  if (type === 'material') {
+    const composition = jsonField('material-composition', 'object', 'Composition');
+    const properties = jsonField('material-properties', 'array', 'Material properties');
+    const validity = jsonField('material-validity', 'object', 'Validity domain');
+    const compositionMissing = $('material-composition-reason').value.trim();
+    const phase = $('material-phase').value.trim();
+    const phaseMissing = $('material-phase-reason').value.trim();
+    return {
+      schema_version: '1.0', record_type: 'material', id: $('material-id').value.trim(),
+      title: $('material-title').value.trim(), composition,
+      composition_missing_reason: Object.keys(composition).length ? null : compositionMissing,
+      phase: phase || null, phase_missing_reason: phase ? null : phaseMissing,
+      properties, validity_domain: validity,
+      source_refs: jsonField('material-sources', 'array', 'Source references'), metadata: {}
+    };
+  }
   const linkedStructure = $('study-structure').value;
   const [structure_id, rawStructureRevision] = linkedStructure ? linkedStructure.split('@') : [null, null];
   return {
@@ -115,7 +137,7 @@ function showStored(type, record) {
     $('device-sources').value = JSON.stringify(recordValue.source_refs, null, 2);
     deviceRevision = record.revision;
     $('device-revision').textContent = `Device ${record.id}, revision ${record.revision}; SHA-256 ${record.sha256}`;
-  } else {
+  } else if (type === 'study') {
     $('study-id').value = recordValue.id; $('study-title').value = recordValue.title;
     $('study-device-id').value = recordValue.device_id; $('study-device-revision').value = recordValue.device_revision;
     if (recordValue.structure_id && recordValue.structure_revision) {
@@ -131,6 +153,17 @@ function showStored(type, record) {
     $('study-status').value = recordValue.status;
     studyRevision = record.revision;
     $('study-revision').textContent = `Study ${record.id}, revision ${record.revision}; SHA-256 ${record.sha256}`;
+  } else if (type === 'material') {
+    $('material-id').value = recordValue.id; $('material-title').value = recordValue.title;
+    $('material-composition').value = JSON.stringify(recordValue.composition, null, 2);
+    $('material-composition-reason').value = recordValue.composition_missing_reason || '';
+    $('material-phase').value = recordValue.phase || '';
+    $('material-phase-reason').value = recordValue.phase_missing_reason || '';
+    $('material-properties').value = JSON.stringify(recordValue.properties, null, 2);
+    $('material-validity').value = JSON.stringify(recordValue.validity_domain, null, 2);
+    $('material-sources').value = JSON.stringify(recordValue.source_refs, null, 2);
+    materialRevision = record.revision;
+    $('material-revision').textContent = `Material ${record.id}, revision ${record.revision}; SHA-256 ${record.sha256}. Record data only; no material qualification implied.`;
   }
 }
 function downloadText(name, content) {
@@ -168,6 +201,15 @@ $('study-form').onsubmit = async event => {
       : 'Study revision saved with its exact device revision; no structure is linked.';
   } catch (error) { $('notice').textContent = error.message; }
 };
+$('material-form').onsubmit = async event => {
+  event.preventDefault();
+  try {
+    const record = recordPayload('material');
+    const saved = await request('/api/project-records/material', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({record, expected_revision: materialRevision})});
+    showStored('material', saved); $('notice').textContent = 'Material record saved. Values remain source-dependent and are not product-qualified.';
+  } catch (error) { $('notice').textContent = error.message; }
+};
 $('device-load').onclick = async () => {
   try { const record = await request(`/api/project-records/device/${encodeURIComponent($('device-id').value.trim())}`); showStored('device', record); $('notice').textContent = 'Latest device revision loaded.'; }
   catch (error) { $('notice').textContent = error.message; }
@@ -176,7 +218,11 @@ $('study-load').onclick = async () => {
   try { const record = await request(`/api/project-records/study/${encodeURIComponent($('study-id').value.trim())}`); showStored('study', record); $('notice').textContent = 'Latest study revision loaded.'; }
   catch (error) { $('notice').textContent = error.message; }
 };
-for (const [buttonId, type, idField] of [['device-export', 'device', 'device-id']]) {
+$('material-load').onclick = async () => {
+  try { const record = await request(`/api/project-records/material/${encodeURIComponent($('material-id').value.trim())}`); showStored('material', record); $('notice').textContent = 'Latest material record loaded.'; }
+  catch (error) { $('notice').textContent = error.message; }
+};
+for (const [buttonId, type, idField] of [['device-export', 'device', 'device-id'], ['material-export', 'material', 'material-id']]) {
   $(buttonId).onclick = async () => {
     try { const bundle = await downloadResponse(`/api/project-records/${type}/${encodeURIComponent($(idField).value.trim())}/export`, `${type}-${$(idField).value.trim()}-export.json`);
       $('result').textContent = JSON.stringify(bundle, null, 2); $('notice').textContent = `${type} record exported with hash manifest.`; }
@@ -214,7 +260,7 @@ $('import').onclick = async () => {
 $('refresh').onclick = async () => {
   const list = $('records'); list.replaceChildren();
   try {
-    for (const type of ['device', 'study']) {
+    for (const type of ['device', 'study', 'material']) {
       const data = await request(`/api/project-records/${type}`);
       for (const record of data.records) {
         const item = document.createElement('li');
@@ -224,6 +270,10 @@ $('refresh').onclick = async () => {
             ? `${record.record.structure_id}@${record.record.structure_revision}`
             : 'none linked';
           description.textContent = `study: ${record.id} · r${record.revision} · ${record.record.title} · workflow: ${record.record.status} (not scientific acceptance) · structure: ${structure} `;
+        } else if (type === 'material') {
+          const formula = Object.entries(record.record.composition || {}).map(([element, ratio]) => `${element}${ratio === 1 ? '' : ratio}`).join('')
+            || `composition unknown: ${record.record.composition_missing_reason}`;
+          description.textContent = `material: ${record.id} · r${record.revision} · ${record.record.title} · ${formula} · phase: ${record.record.phase || `unknown (${record.record.phase_missing_reason})`} `;
         } else description.textContent = `device: ${record.id} · r${record.revision} · ${record.record.title} `;
         const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Load';
         button.setAttribute('aria-label', `Load ${type} ${record.id} revision ${record.revision}`);

@@ -165,11 +165,11 @@ python3.11 -m venv .venv
 
 The local app accepts the default preview origins and the configured `SPINVAULT_WEB_PORT`. `SPINVAULT_CORS_ORIGINS` replaces the default list with a comma-separated list. Direct `file://` pages (`Origin: null`) are not allowed by default; use the local website server. The SpinVault public website origins are included in the default list; override the list to limit access to local origins if required.
 
-### Device and study records
+### Device, study, structure, and material records
 
-Local record routes use `SPINVAULT_PROJECT_RECORDS_DB` (default `project_records.sqlite` beside the requirement database). Device records preserve ordered layers and explicit unknowns; known numeric quantities require units. Study records must reference an existing immutable device revision. Records are append-only with SHA-256, optimistic revision checks and migration version 1.
+Local record routes use `SPINVAULT_PROJECT_RECORDS_DB` (default `project_records.sqlite` beside the requirement database). Device records preserve ordered layers and explicit unknowns; known numeric quantities require units. Study records must reference an existing immutable device revision. Material records keep composition, phase, properties, conditions and validity limits source-aware; unknown composition, phase, or quantities require explicit reasons, and known values require source references. Records are append-only with SHA-256, optimistic revision checks and migration version 1.
 
-- `GET /api/project-records/device` or `/study` lists the latest revisions.
+- `GET /api/project-records/{type}` lists latest revisions for `device`, `study`, `structure`, or `material`.
 - `GET /api/project-records/{type}/{id}?revision=N` reads a revision.
 - `POST /api/project-records/{type}` saves `{record, expected_revision}`.
 - `GET /api/project-records/{type}/{id}/export?revision=N` returns a hash-checked JSON bundle.
@@ -179,12 +179,12 @@ Local record routes use `SPINVAULT_PROJECT_RECORDS_DB` (default `project_records
 - `POST /api/project-records/study-package/import` atomically imports the exact linked revisions, preserves their revision numbers, verifies nested and package hashes, and rejects ID collisions. Legacy study packages without a structure reference remain supported.
 - `POST /api/project-records/import-qe-structure` accepts the exact text of a version-1 QE structure catalog record and its filename. The API computes the catalog SHA-256, validates ordered atoms, coordinates and species counts, and stores a normalized source-aware structure record. It preserves the source status and always keeps `transport_validated` false.
 - `GET /api/project-records/structure` lists imported structures; `GET /api/project-records/structure/{id}?revision=N` reads one immutable revision; the standard record export route returns its hash-checked bundle.
-- `GET /api/project-records/archive` exports every device, study, and structure revision into one bounded, SHA-256 protected JSON archive.
+- `GET /api/project-records/archive` exports every device, study, structure, and material revision into one bounded, SHA-256 protected JSON archive.
 - `POST /api/project-records/archive/import` validates the entire archive, exact study-to-device and optional study-to-structure links, revision continuity, and all hashes before atomically importing it. Any ID collision or invalid entry rejects the whole archive without partial writes.
 
-The project archive contains versioned device, study, and structure records only. It deliberately does not package raw scientific files, simulation outputs, secrets, evidence-signing keys, or material data files. Structure import is limited to the QE catalog labels currently mapped in the API; unsupported species stop with an error rather than being guessed.
+The project archive contains versioned device, study, structure, and material records only. It deliberately does not package raw scientific files, simulation outputs, secrets, evidence-signing keys, or external material data files. Structure import is limited to the QE catalog labels currently mapped in the API; unsupported species stop with an error rather than being guessed.
 
-These endpoints accept JSON only and do not resolve user-supplied filesystem paths. The local UI provides ordered layer fields while other advanced structures remain explicit JSON fields; no material registry, schema upgrade beyond v1, or project-wide atomic study export is claimed.
+These endpoints accept JSON only and do not resolve user-supplied filesystem paths. The local UI provides ordered layer fields while advanced material properties remain explicit JSON fields; no external material registry, schema upgrade beyond v1, or project-wide atomic study export is claimed.
 
 ### Catalogued research artifacts
 
