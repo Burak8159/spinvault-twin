@@ -47,10 +47,9 @@ if ! "$PYTHON" -c 'import fastapi, pydantic_settings, uvicorn, numpy, matplotlib
   echo "setup: installing backend dependencies (needs network once)"
   PYTHON_MINOR="$($PYTHON -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
   if [ "$(uname -s)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ] && [ "$PYTHON_MINOR" = "3.11" ]; then
-    echo "setup: using qualified macOS arm64 / Python 3.11 version constraints"
-    "$PYTHON" -m pip install --disable-pip-version-check \
-      -r "$REPO_ROOT/backend/requirements.txt" \
-      -c "$REPO_ROOT/backend/constraints-macos-arm64-py311.txt" ||
+    echo "setup: using hash-locked macOS arm64 / Python 3.11 dependencies"
+    "$PYTHON" -m pip install --disable-pip-version-check --require-hashes \
+      -r "$REPO_ROOT/backend/requirements-macos-arm64-py311.lock" ||
       die "dependency install failed. Fix the pip error above, then re-run."
   else
     echo "setup: no qualified dependency constraints for this platform; using declared minimums"

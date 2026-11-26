@@ -27,10 +27,18 @@ uvicorn app.main:app --reload --port 8001
 ```
 
 The whole-app launcher detects Apple silicon with Python 3.11 and installs with
-`constraints-macos-arm64-py311.txt`, which matches the locally qualified setup.
-Other platforms currently use the minimum requirements because platform-specific
-constraints have not been qualified yet. The Python constraints pin versions but
-do not provide package hashes.
+`requirements-macos-arm64-py311.lock` using pip's `--require-hashes` mode. The
+lock was generated from `requirements.txt` and
+`constraints-macos-arm64-py311.txt` using pip-tools on Python 3.11. Other
+platforms currently use the minimum requirements because platform-specific
+locks have not been qualified. To regenerate the macOS lock, install pip-tools
+in a temporary environment and run:
+
+```bash
+pip-compile --generate-hashes --strip-extras \
+  --constraint constraints-macos-arm64-py311.txt \
+  --output-file requirements-macos-arm64-py311.lock requirements.txt
+```
 
 ### Worker mode and local persistence
 

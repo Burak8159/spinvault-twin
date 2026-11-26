@@ -11,8 +11,8 @@ setup_case() {
   mkdir -p "$case_root/project/backend/.venv/bin" "$case_root/project/scripts" "$case_root/fakebin"
   cp "$ROOT/scripts/run_local.sh" "$case_root/project/scripts/run_local.sh"
   cp "$ROOT/backend/requirements.txt" "$case_root/project/backend/requirements.txt"
-  cp "$ROOT/backend/constraints-macos-arm64-py311.txt" \
-    "$case_root/project/backend/constraints-macos-arm64-py311.txt"
+  cp "$ROOT/backend/requirements-macos-arm64-py311.lock" \
+    "$case_root/project/backend/requirements-macos-arm64-py311.lock"
   cat > "$case_root/project/backend/.venv/bin/python" <<'PYTHON'
 #!/bin/sh
 case "$*" in
@@ -58,9 +58,9 @@ LSOF
 }
 
 setup_case mac-arm64-py311 Darwin arm64 3.11
-grep -q 'using qualified macOS arm64 / Python 3.11 version constraints' \
+  grep -q 'using hash-locked macOS arm64 / Python 3.11 dependencies' \
   "$TMP/mac-arm64-py311/output.log"
-grep -q -- '-c .*constraints-macos-arm64-py311.txt' \
+grep -q -- '--require-hashes -r .*requirements-macos-arm64-py311.lock' \
   "$TMP/mac-arm64-py311/install.log"
 
 setup_case linux-py311 Linux x86_64 3.11
