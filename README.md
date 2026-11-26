@@ -16,6 +16,11 @@ Digital twin platform for the SpinVault spintronic memory architecture.
 - Python 3.9+ is required. The first launch installs Python dependencies and
   therefore needs an internet connection once.
 
+To check dependency-installer routing without starting the app or installing
+packages, run `scripts/tests/run_local_dependency_selection.sh`. It covers the
+qualified Apple silicon/Python 3.11 path and the generic Linux fallback using
+isolated fake installer commands.
+
 The default solver is a local Python 64×32×1 mesh LLGS run. It does not require
 a GPU. See `SENDABLE_README.md` for complete setup and scientific-scope notes.
 
