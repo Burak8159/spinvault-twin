@@ -155,11 +155,11 @@ MuMax3 execution and GPU detection are mocked in unit tests. A real binary / NVI
 
 ### Reproduce the qualified macOS Python 3.11 environment
 
-The following constraints record the dependency versions used in the November 2026 macOS arm64 verification. They are not a cross-platform lockfile, do not include package hashes, and should be requalified when updated.
+The November 2026 macOS arm64/Python 3.11 installation is pinned and hash-verified by `requirements-macos-arm64-py311.lock`. It is not portable to other platforms: cross-target wheel checks found missing pinned Linux and Windows binaries. Keep the constraints file as lock-generation input and create separately resolved locks before claiming support for another operating system.
 
 ```bash
 python3.11 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt -c constraints-macos-arm64-py311.txt
+.venv/bin/python -m pip install --require-hashes -r requirements-macos-arm64-py311.lock
 .venv/bin/python -m pytest tests -q -rs
 ```
 
