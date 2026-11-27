@@ -41,7 +41,10 @@ def test_symlink_into_public_tree_is_rejected(tmp_path: Path) -> None:
     public = tmp_path / "website"
     public.mkdir()
     evidence_link = tmp_path / "evidence-link"
-    evidence_link.symlink_to(public, target_is_directory=True)
+    try:
+        evidence_link.symlink_to(public, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("platform does not allow creating directory symlinks")
 
     assert checker.overlaps_public_tree(evidence_link, [public])
 
