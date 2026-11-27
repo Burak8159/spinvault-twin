@@ -20,6 +20,13 @@ Digital twin platform for the SpinVault spintronic memory architecture.
 - Python 3.9+ is required. The first launch installs Python dependencies and
   therefore needs an internet connection once.
 
+To also start the live records/evidence overview, install the pinned Node
+dependencies with `npm ci` in `apps/simulator`, then run
+`scripts/run_workspace.sh`. It builds and serves the overview in production
+mode by default and supervises it with the API and static tools. Set
+`SPINVAULT_NEXT_MODE=development` only when actively editing the dashboard.
+The overview is read-only and does not certify scientific records.
+
 To check dependency-installer routing without starting the app or installing
 packages, run `scripts/tests/run_local_dependency_selection.sh`. It covers the
 qualified Apple silicon/Python 3.11 path and the generic Linux fallback using

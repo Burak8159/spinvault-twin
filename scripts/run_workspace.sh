@@ -7,6 +7,7 @@ HOST="127.0.0.1"
 API_PORT="${SPINVAULT_API_PORT:-8001}"
 WEB_PORT="${SPINVAULT_WEB_PORT:-4191}"
 NEXT_PORT="${SPINVAULT_NEXT_PORT:-3000}"
+NEXT_MODE="${SPINVAULT_NEXT_MODE:-production}"
 NEXT_BIN="$REPO_ROOT/apps/simulator/node_modules/.bin/next"
 STACK_PID=""
 NEXT_PID=""
@@ -59,6 +60,11 @@ wait_for_url() {
 command -v curl >/dev/null 2>&1 || die "curl is required."
 command -v lsof >/dev/null 2>&1 || die "lsof is required for safe port checks."
 [ -x "$NEXT_BIN" ] || die "Next.js dependencies are not installed. Run 'npm ci' in apps/simulator, then retry. No packages were installed automatically."
+case "$NEXT_MODE" in
+  production) command -v npm >/dev/null 2>&1 || die "npm is required to build the local evidence workspace." ;;
+  development) ;;
+  *) die "SPINVAULT_NEXT_MODE must be 'production' or 'development'." ;;
+esac
 
 require_free_port "$API_PORT" API
 require_free_port "$WEB_PORT" WEB
@@ -77,16 +83,26 @@ echo "starting the evidence workspace"
   cd "$REPO_ROOT/apps/simulator"
   export SPINVAULT_TWIN_API_URL="http://$HOST:$API_PORT"
   export SPINVAULT_TWIN_WEB_URL="http://$HOST:$WEB_PORT"
+  if [ "$NEXT_MODE" = "production" ]; then
+    echo "building the evidence workspace for production mode"
+    npm run build
+    exec "$NEXT_BIN" start --hostname "$HOST" --port "$NEXT_PORT"
+  fi
   exec "$NEXT_BIN" dev --hostname "$HOST" --port "$NEXT_PORT"
 ) &
 NEXT_PID=$!
-wait_for_url "http://$HOST:$NEXT_PORT/" "evidence workspace" 120
+if [ "$NEXT_MODE" = "production" ]; then
+  wait_for_url "http://$HOST:$NEXT_PORT/" "evidence workspace" 600
+else
+  wait_for_url "http://$HOST:$NEXT_PORT/" "evidence workspace" 120
+fi
 
 cat <<EOF
 
   SpinVault Twin workspace is running locally.
 
     Workspace overview  http://$HOST:$NEXT_PORT/
+  Mode                $NEXT_MODE
     Simulator           http://$HOST:$WEB_PORT/simulator.html
     Project records     http://$HOST:$WEB_PORT/project_records.html
     Requirements        http://$HOST:$WEB_PORT/requirements.html

@@ -5,7 +5,7 @@ This Next.js app is a read-only overview for the local SpinVault Twin. It reads 
 ## Run locally
 
 1. From `apps/simulator`, run `npm ci` once to install the pinned app dependencies.
-2. From the repository root, run `scripts/run_workspace.sh`. This starts the Twin API, static companion tools, and this dashboard; it checks the required ports and shuts down the services together when you press Ctrl+C.
+2. From the repository root, run `scripts/run_workspace.sh`. By default it builds and serves the dashboard in production mode, starts the Twin API and static companion tools, checks the required ports, and shuts the services down together when you press Ctrl+C. Set `SPINVAULT_NEXT_MODE=development` to use the live-reloading development server instead.
 3. Open `http://127.0.0.1:3000`.
 
 The default API and static-tool addresses remain `http://127.0.0.1:8001` and `http://127.0.0.1:4191`. The workspace uses port `3000`. Set `SPINVAULT_API_PORT`, `SPINVAULT_WEB_PORT`, or `SPINVAULT_NEXT_PORT` to choose different free ports. The launcher never installs packages automatically; if dependencies are missing, it exits with the install command.
