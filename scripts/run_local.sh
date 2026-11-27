@@ -35,6 +35,12 @@ VENV_CREATOR="$(command -v python3)"
 if [ "$(uname -s)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ] && command -v python3.11 >/dev/null 2>&1; then
   VENV_CREATOR="$(command -v python3.11)"
 fi
+if [ -n "${SPINVAULT_REQUIREMENT_EVIDENCE_ROOT:-}" ]; then
+  "$VENV_CREATOR" "$REPO_ROOT/scripts/check_private_evidence_root.py" \
+    "$SPINVAULT_REQUIREMENT_EVIDENCE_ROOT" \
+    "$REPO_ROOT/apps/website" "$REPO_ROOT/apps/simulator/public" ||
+    die "requirement evidence must live outside the static website and simulator public directories."
+fi
 require_free_port "$API_PORT" "API"
 require_free_port "$WEB_PORT" "website"
 

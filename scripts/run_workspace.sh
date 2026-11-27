@@ -72,12 +72,20 @@ wait_for_url() {
 
 command -v curl >/dev/null 2>&1 || die "curl is required."
 command -v lsof >/dev/null 2>&1 || die "lsof is required for safe port checks."
+command -v python3 >/dev/null 2>&1 || die "python3 is required to validate private evidence storage."
 [ -x "$NEXT_BIN" ] || die "Next.js dependencies are not installed. Run 'npm ci' in apps/simulator, then retry. No packages were installed automatically."
 case "$NEXT_MODE" in
   production) command -v npm >/dev/null 2>&1 || die "npm is required to build the local evidence workspace." ;;
   development) ;;
   *) die "SPINVAULT_NEXT_MODE must be 'production' or 'development'." ;;
 esac
+
+if [ -n "${SPINVAULT_REQUIREMENT_EVIDENCE_ROOT:-}" ]; then
+  python3 "$REPO_ROOT/scripts/check_private_evidence_root.py" \
+    "$SPINVAULT_REQUIREMENT_EVIDENCE_ROOT" \
+    "$REPO_ROOT/apps/website" "$REPO_ROOT/apps/simulator/public" ||
+    die "requirement evidence must live outside the static website and simulator public directories."
+fi
 
 require_free_port "$API_PORT" API
 require_free_port "$WEB_PORT" WEB

@@ -7,6 +7,7 @@ The existing local Requirements and evidence page was reachable, but its same-cy
 ## Change
 
 - `scripts/run_workspace.sh` now reports whether the private evidence folder, review key, and same-cycle acceptance policy are configured/readable when it starts. It prints no configured path or key contents.
+- Both local launchers reject an evidence root that overlaps either static public directory. The check resolves symlinks and rejects missing or non-directory roots before the API starts.
 - `docs/LOCAL_EVIDENCE_CONFIGURATION.md` gives the local setup commands, record-review boundary, and fail-closed behavior.
 - `README.md` links the setup guide from the local workspace instructions.
 
@@ -15,7 +16,9 @@ No currently running application process, stored project record, evidence record
 ## Verification
 
 - `bash -n scripts/run_workspace.sh`: pass.
-- `backend/.venv/bin/python -m pytest -q scripts/tests/test_build_local_package.py`: 2 passed.
+- `bash -n scripts/run_workspace.sh scripts/run_local.sh`: pass.
+- `backend/.venv/bin/python -m pytest -q scripts/tests/test_private_evidence_root.py scripts/tests/test_build_local_package.py`: 8 passed.
+- Current actual QE evidence folder resolves outside both public directories.
 - `git diff --check`: pass.
 - Live UI observation: same-cycle check reports evidence storage is unconfigured in the currently running workspace.
 

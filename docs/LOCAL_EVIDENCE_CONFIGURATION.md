@@ -18,7 +18,7 @@ export SPINVAULT_ACCEPTANCE_POLICY_FILE="/absolute/path/to/project/acceptance-po
 ./scripts/run_workspace.sh
 ```
 
-The evidence folder and review key are required for qualified single-measurement evaluation. The acceptance policy is additionally required for grouped same-cycle gate checks. The launcher reports whether each path is available; it does not create a key, qualify observations, or infer a policy. If the relevant path is absent, the API intentionally fails closed.
+The evidence folder and review key are required for qualified single-measurement evaluation. The acceptance policy is additionally required for grouped same-cycle gate checks. The launcher reports whether each path is available; it does not create a key, qualify observations, or infer a policy. If the relevant path is absent, the API intentionally fails closed. The launcher also refuses an evidence root that overlaps the static website or simulator public-assets directory, including when symlinks resolve into those directories.
 
 Initialize a new signing key only once, storing it outside the repository with owner-only permissions:
 
