@@ -25,7 +25,10 @@ dependencies with `npm ci` in `apps/simulator`, then run
 `scripts/run_workspace.sh`. It builds and serves the overview in production
 mode by default and supervises it with the API and static tools. Set
 `SPINVAULT_NEXT_MODE=development` only when actively editing the dashboard.
-The overview is read-only and does not certify scientific records.
+The overview is read-only and does not certify scientific records. To enable
+the private, hash-checked requirements evidence workflow, configure its evidence
+folder, review key, and (for same-cycle gates) project policy before launch; see
+[`docs/LOCAL_EVIDENCE_CONFIGURATION.md`](docs/LOCAL_EVIDENCE_CONFIGURATION.md).
 
 To check dependency-installer routing without starting the app or installing
 packages, run `scripts/tests/run_local_dependency_selection.sh`. It covers the

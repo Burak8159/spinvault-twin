@@ -11,6 +11,19 @@ NEXT_MODE="${SPINVAULT_NEXT_MODE:-production}"
 NEXT_BIN="$REPO_ROOT/apps/simulator/node_modules/.bin/next"
 STACK_PID=""
 NEXT_PID=""
+EVIDENCE_STATUS="not configured; evidence comparisons will be unavailable"
+REVIEW_KEY_STATUS="not configured; observations cannot qualify as reviewed"
+ACCEPTANCE_POLICY_STATUS="not configured; same-cycle gate checks will be unavailable"
+
+if [ -n "${SPINVAULT_REQUIREMENT_EVIDENCE_ROOT:-}" ] && [ -d "$SPINVAULT_REQUIREMENT_EVIDENCE_ROOT" ]; then
+  EVIDENCE_STATUS="configured private evidence folder"
+fi
+if [ -n "${SPINVAULT_EVIDENCE_SIGNING_KEY_FILE:-}" ] && [ -r "$SPINVAULT_EVIDENCE_SIGNING_KEY_FILE" ]; then
+  REVIEW_KEY_STATUS="configured; each review signature is still verified per record"
+fi
+if [ -n "${SPINVAULT_ACCEPTANCE_POLICY_FILE:-}" ] && [ -r "$SPINVAULT_ACCEPTANCE_POLICY_FILE" ]; then
+  ACCEPTANCE_POLICY_STATUS="configured; runtime semantics and each gate still require validation"
+fi
 
 die() {
   echo "error: $*" >&2
@@ -107,6 +120,10 @@ cat <<EOF
     Project records     http://$HOST:$WEB_PORT/project_records.html
     Requirements        http://$HOST:$WEB_PORT/requirements.html
     API health          http://$HOST:$API_PORT/health
+    Evidence folder     $EVIDENCE_STATUS
+    Review key          $REVIEW_KEY_STATUS
+    Same-cycle policy   $ACCEPTANCE_POLICY_STATUS
+    Evidence setup      docs/LOCAL_EVIDENCE_CONFIGURATION.md
 
   Press Ctrl+C to stop the workspace and its local services.
 
